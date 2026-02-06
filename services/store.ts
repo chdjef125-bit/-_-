@@ -12,12 +12,13 @@ import { getFirestore, collection, getDocs, setDoc, doc, getDoc } from 'firebase
 // 6. Set Rules to "Start in test mode" (or allow read/write for development).
 
 const firebaseConfig = {
-  apiKey: "", 
-  authDomain: "",
-  projectId: "",
-  storageBucket: "",
-  messagingSenderId: "",
-  appId: ""
+  apiKey: "AIzaSyBW9qe9dvj4KDCkFzCHQRnV2TFiQt7KDWQ",
+  authDomain: "jktest2-66e34.firebaseapp.com",
+  projectId: "jktest2-66e34",
+  storageBucket: "jktest2-66e34.firebasestorage.app",
+  messagingSenderId: "494122010904",
+  appId: "1:494122010904:web:4f1034b29bb08ef94d766d",
+  measurementId: "G-C3P3PHVST4"
 };
 
 // --- INITIALIZATION ---
