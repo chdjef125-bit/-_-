@@ -1,6 +1,42 @@
 import { Project, Member, ActivityLog, ArchiveItem, ProcessStep, SiteConfig } from '../types';
+import { initializeApp } from 'firebase/app';
+import { getFirestore, collection, getDocs, setDoc, doc, getDoc } from 'firebase/firestore';
 
-// Initial Mock Data
+// --- FIREBASE CONFIGURATION ---
+// TODO: [USER ACTION REQUIRED]
+// 1. Go to https://console.firebase.google.com/
+// 2. Create a new project.
+// 3. Register a web app (</> icon) and copy the SDK setup config.
+// 4. Paste the config values below.
+// 5. In Firebase Console > Build > Firestore Database > Create Database.
+// 6. Set Rules to "Start in test mode" (or allow read/write for development).
+
+const firebaseConfig = {
+  apiKey: "", 
+  authDomain: "",
+  projectId: "",
+  storageBucket: "",
+  messagingSenderId: "",
+  appId: ""
+};
+
+// --- INITIALIZATION ---
+let db: any = null;
+const isFirebaseConfigured = firebaseConfig.apiKey.length > 0;
+
+if (isFirebaseConfigured) {
+  try {
+    const app = initializeApp(firebaseConfig);
+    db = getFirestore(app);
+    console.log("🔥 Firebase initialized successfully.");
+  } catch (e) {
+    console.error("Firebase initialization failed:", e);
+  }
+} else {
+  console.warn("⚠️ Firebase is NOT configured. Running in LocalStorage (Static) mode. Edit services/store.ts to enable dynamic features.");
+}
+
+// --- INITIAL MOCK DATA (Fallback) ---
 const INITIAL_PROJECTS: Project[] = [
   {
     id: '1',
@@ -62,7 +98,6 @@ const INITIAL_SITE_CONFIG: SiteConfig = {
   homeHeroTitle: "We don't just design.",
   homeHeroSubtitle: "We Conspire.",
   homeHeroDescription: "건축을 작당합니다. 끊임없이 발전을 모의하는 설계집단, 작당입니다.",
-  // Updated to a brick factory/warehouse renovation style image similar to the user's request
   homeHeroImageUrl: "https://images.unsplash.com/photo-1577495508048-b635879837f1?q=80&w=2070&auto=format&fit=crop", 
   aboutDefinition: "We redefine 'Conspiracy' (작당/Jakdang). It is not a plot for harm, but a plot for creation. It is a collective effort to disturb the stagnant waters of conventional student architecture.",
   aboutDescription: "We operate as a semi-professional studio. Hierarchy exists only in experience, not in speech. Critique is sharp, but intended to sculpt better ideas.",
@@ -70,7 +105,7 @@ const INITIAL_SITE_CONFIG: SiteConfig = {
   contactCollabText: "Open for exhibitions, joint studios, and freelance design commissions."
 };
 
-// LocalStorage Keys
+// LocalStorage Keys (Fallback)
 const KEYS = {
   PROJECTS: 'jakdang_projects',
   MEMBERS: 'jakdang_members',
@@ -80,40 +115,117 @@ const KEYS = {
   SITE_CONFIG: 'jakdang_config'
 };
 
-// Helper to load or initialize
-const loadData = <T,>(key: string, initial: T): T => {
+// --- DATA SERVICE (ASYNC) ---
+
+const loadLocal = <T,>(key: string, initial: T): T => {
   try {
     const stored = localStorage.getItem(key);
-    if (!stored) {
-      localStorage.setItem(key, JSON.stringify(initial));
-      return initial;
-    }
+    if (!stored) return initial;
     return JSON.parse(stored);
   } catch (e) {
-    console.error("Storage error", e);
     return initial;
   }
 };
 
+const saveLocal = (key: string, data: any) => {
+  localStorage.setItem(key, JSON.stringify(data));
+};
+
+// Generic Fetcher
+const fetchData = async <T>(collectionName: string, localKey: string, initial: T): Promise<T> => {
+  if (isFirebaseConfigured && db) {
+    try {
+      if (collectionName === 'config') {
+         // Config is a single document
+         const docRef = doc(db, 'settings', 'siteConfig');
+         const docSnap = await getDoc(docRef);
+         if (docSnap.exists()) return docSnap.data() as T;
+         return initial;
+      } else {
+         // Arrays are collections
+         const querySnapshot = await getDocs(collection(db, collectionName));
+         const data: any[] = [];
+         querySnapshot.forEach((doc) => {
+           data.push(doc.data());
+         });
+         return data.length > 0 ? (data as unknown as T) : initial;
+      }
+    } catch (e) {
+      console.error(`Error fetching ${collectionName}:`, e);
+      return loadLocal(localKey, initial);
+    }
+  } else {
+    // Artificial delay for local storage to simulate async
+    return new Promise(resolve => setTimeout(() => resolve(loadLocal(localKey, initial)), 100));
+  }
+};
+
+// Generic Saver
+const saveData = async (collectionName: string, localKey: string, data: any) => {
+  // Always save to local for cache/backup
+  saveLocal(localKey, data);
+
+  if (isFirebaseConfigured && db) {
+    try {
+      if (collectionName === 'config') {
+        // Save Config Object
+        await setDoc(doc(db, 'settings', 'siteConfig'), data);
+      } else {
+        // Save Collection: Strategy -> Loop and SetDoc by ID
+        // Note: In a real app, you might want to handle deletions better. 
+        // Here we just upsert everything.
+        const items = Array.isArray(data) ? data : [];
+        const batchPromises = items.map(item => {
+           if(item.id) {
+             return setDoc(doc(db, collectionName, item.id), item);
+           }
+           return Promise.resolve();
+        });
+        await Promise.all(batchPromises);
+      }
+      console.log(`Saved ${collectionName} to Cloud.`);
+    } catch (e) {
+      console.error(`Error saving ${collectionName}:`, e);
+      throw e;
+    }
+  }
+};
+
 export const DataService = {
-  getProjects: (): Project[] => loadData(KEYS.PROJECTS, INITIAL_PROJECTS),
-  saveProjects: (data: Project[]) => localStorage.setItem(KEYS.PROJECTS, JSON.stringify(data)),
+  isConfigured: isFirebaseConfigured,
+
+  getProjects: () => fetchData<Project[]>('projects', KEYS.PROJECTS, INITIAL_PROJECTS),
+  saveProjects: (data: Project[]) => saveData('projects', KEYS.PROJECTS, data),
   
-  getMembers: (): Member[] => loadData(KEYS.MEMBERS, INITIAL_MEMBERS),
-  saveMembers: (data: Member[]) => localStorage.setItem(KEYS.MEMBERS, JSON.stringify(data)),
+  getMembers: () => fetchData<Member[]>('members', KEYS.MEMBERS, INITIAL_MEMBERS),
+  saveMembers: (data: Member[]) => saveData('members', KEYS.MEMBERS, data),
   
-  getArchive: (): ArchiveItem[] => loadData(KEYS.ARCHIVE, INITIAL_ARCHIVE),
-  saveArchive: (data: ArchiveItem[]) => localStorage.setItem(KEYS.ARCHIVE, JSON.stringify(data)),
+  getArchive: () => fetchData<ArchiveItem[]>('archive', KEYS.ARCHIVE, INITIAL_ARCHIVE),
+  saveArchive: (data: ArchiveItem[]) => saveData('archive', KEYS.ARCHIVE, data),
 
-  getActivities: (): ActivityLog[] => loadData(KEYS.ACTIVITIES, INITIAL_ACTIVITIES),
-  saveActivities: (data: ActivityLog[]) => localStorage.setItem(KEYS.ACTIVITIES, JSON.stringify(data)),
+  getActivities: () => fetchData<ActivityLog[]>('activities', KEYS.ACTIVITIES, INITIAL_ACTIVITIES),
+  saveActivities: (data: ActivityLog[]) => saveData('activities', KEYS.ACTIVITIES, data),
 
-  getProcess: (): ProcessStep[] => loadData(KEYS.PROCESS, INITIAL_PROCESS),
-  saveProcess: (data: ProcessStep[]) => localStorage.setItem(KEYS.PROCESS, JSON.stringify(data)),
+  getProcess: () => fetchData<ProcessStep[]>('process', KEYS.PROCESS, INITIAL_PROCESS),
+  saveProcess: (data: ProcessStep[]) => saveData('process', KEYS.PROCESS, data),
 
-  getSiteConfig: (): SiteConfig => loadData(KEYS.SITE_CONFIG, INITIAL_SITE_CONFIG),
-  saveSiteConfig: (data: SiteConfig) => localStorage.setItem(KEYS.SITE_CONFIG, JSON.stringify(data)),
+  getSiteConfig: () => fetchData<SiteConfig>('config', KEYS.SITE_CONFIG, INITIAL_SITE_CONFIG),
+  saveSiteConfig: (data: SiteConfig) => saveData('config', KEYS.SITE_CONFIG, data),
   
   // Utility for ID generation
   generateId: () => Math.random().toString(36).substr(2, 9),
+
+  // Migration Tool
+  migrateToCloud: async () => {
+    if (!isFirebaseConfigured) throw new Error("Firebase not configured");
+    
+    await saveData('projects', KEYS.PROJECTS, loadLocal(KEYS.PROJECTS, INITIAL_PROJECTS));
+    await saveData('members', KEYS.MEMBERS, loadLocal(KEYS.MEMBERS, INITIAL_MEMBERS));
+    await saveData('archive', KEYS.ARCHIVE, loadLocal(KEYS.ARCHIVE, INITIAL_ARCHIVE));
+    await saveData('activities', KEYS.ACTIVITIES, loadLocal(KEYS.ACTIVITIES, INITIAL_ACTIVITIES));
+    await saveData('process', KEYS.PROCESS, loadLocal(KEYS.PROCESS, INITIAL_PROCESS));
+    await saveData('config', KEYS.SITE_CONFIG, loadLocal(KEYS.SITE_CONFIG, INITIAL_SITE_CONFIG));
+    
+    return true;
+  }
 };

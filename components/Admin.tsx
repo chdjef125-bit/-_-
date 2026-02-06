@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Project, Member, ActivityLog, ArchiveItem, ProcessStep, SiteConfig } from '../types';
-import { Trash2, Plus, Lock, LogOut, Layout, Users, Calendar, Archive, FileText, Settings, Upload, Image as ImageIcon, Link, Download, Save, AlertTriangle, Code, Globe } from 'lucide-react';
+import { Trash2, Plus, Lock, LogOut, Layout, Users, Calendar, Archive, FileText, Settings, Upload, Image as ImageIcon, Link, Download, Save, AlertTriangle, Code, Globe, FileJson, RefreshCw, Database, CloudLightning } from 'lucide-react';
 import { DataService } from '../services/store';
 
 interface AdminProps {
@@ -19,7 +19,7 @@ interface AdminProps {
   onLogout: () => void;
 }
 
-type TabType = 'projects' | 'members' | 'activities' | 'archive' | 'process' | 'config';
+type TabType = 'projects' | 'members' | 'activities' | 'archive' | 'process' | 'config' | 'system';
 
 export const Admin: React.FC<AdminProps> = ({ 
   projects, setProjects, 
@@ -32,7 +32,8 @@ export const Admin: React.FC<AdminProps> = ({
 }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState('');
-  const [activeTab, setActiveTab] = useState<TabType>('projects');
+  const [activeTab, setActiveTab] = useState<TabType>('config'); 
+  const [isSaving, setIsSaving] = useState(false);
   
   // Forms State
   const [newProject, setNewProject] = useState<Partial<Project>>({
@@ -96,23 +97,26 @@ export const Admin: React.FC<AdminProps> = ({
     }
   };
   
-  const safeSave = <T,>(saveFn: (data: T) => void, data: T) => {
+  const safeSave = async <T,>(saveFn: (data: T) => Promise<void>, data: T) => {
+    setIsSaving(true);
     try {
-      saveFn(data);
+      await saveFn(data);
     } catch (e: any) {
       if (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED') {
         alert("Storage Quota Exceeded! Image too large. Use an external URL.");
       } else {
         console.error(e);
-        alert("Failed to save data locally.");
+        alert("Failed to save data. " + (DataService.isConfigured ? "Check Firebase Console." : ""));
       }
+    } finally {
+      setIsSaving(false);
     }
   };
   
   const createDeleteHandler = <T extends { id: string }>(
     data: T[], 
     setter: (d: T[]) => void, 
-    persister: (d: T[]) => void
+    persister: (d: T[]) => Promise<void>
   ) => (id: string) => {
     if (confirm('Permanently delete record?')) {
       const updated = data.filter(item => item.id !== id);
@@ -186,72 +190,23 @@ export const Admin: React.FC<AdminProps> = ({
     });
   };
 
-  const handleDownloadStore = () => {
-    const fileContent = `import { Project, Member, ActivityLog, ArchiveItem, ProcessStep, SiteConfig } from '../types';
+  // --- SYSTEM FUNCTIONS ---
 
-const INITIAL_PROJECTS: Project[] = ${JSON.stringify(projects, null, 2)};
-const INITIAL_MEMBERS: Member[] = ${JSON.stringify(members, null, 2)};
-const INITIAL_ARCHIVE: ArchiveItem[] = ${JSON.stringify(archive, null, 2)};
-const INITIAL_ACTIVITIES: ActivityLog[] = ${JSON.stringify(activities, null, 2)};
-const INITIAL_PROCESS: ProcessStep[] = ${JSON.stringify(process, null, 2)};
-const INITIAL_SITE_CONFIG: SiteConfig = ${JSON.stringify(config, null, 2)};
-
-// LocalStorage Keys
-const KEYS = {
-  PROJECTS: 'jakdang_projects',
-  MEMBERS: 'jakdang_members',
-  ARCHIVE: 'jakdang_archive',
-  ACTIVITIES: 'jakdang_activities',
-  PROCESS: 'jakdang_process',
-  SITE_CONFIG: 'jakdang_config'
-};
-
-// Helper to load or initialize
-const loadData = <T,>(key: string, initial: T): T => {
-  try {
-    const stored = localStorage.getItem(key);
-    if (!stored) {
-      localStorage.setItem(key, JSON.stringify(initial));
-      return initial;
+  const handleMigrateToCloud = async () => {
+    if (!DataService.isConfigured) {
+      alert("Database is not configured yet. Please update services/store.ts first.");
+      return;
     }
-    return JSON.parse(stored);
-  } catch (e) {
-    console.error("Storage error", e);
-    return initial;
-  }
-};
-
-export const DataService = {
-  getProjects: (): Project[] => loadData(KEYS.PROJECTS, INITIAL_PROJECTS),
-  saveProjects: (data: Project[]) => localStorage.setItem(KEYS.PROJECTS, JSON.stringify(data)),
-  
-  getMembers: (): Member[] => loadData(KEYS.MEMBERS, INITIAL_MEMBERS),
-  saveMembers: (data: Member[]) => localStorage.setItem(KEYS.MEMBERS, JSON.stringify(data)),
-  
-  getArchive: (): ArchiveItem[] => loadData(KEYS.ARCHIVE, INITIAL_ARCHIVE),
-  saveArchive: (data: ArchiveItem[]) => localStorage.setItem(KEYS.ARCHIVE, JSON.stringify(data)),
-
-  getActivities: (): ActivityLog[] => loadData(KEYS.ACTIVITIES, INITIAL_ACTIVITIES),
-  saveActivities: (data: ActivityLog[]) => localStorage.setItem(KEYS.ACTIVITIES, JSON.stringify(data)),
-
-  getProcess: (): ProcessStep[] => loadData(KEYS.PROCESS, INITIAL_PROCESS),
-  saveProcess: (data: ProcessStep[]) => localStorage.setItem(KEYS.PROCESS, JSON.stringify(data)),
-
-  getSiteConfig: (): SiteConfig => loadData(KEYS.SITE_CONFIG, INITIAL_SITE_CONFIG),
-  saveSiteConfig: (data: SiteConfig) => localStorage.setItem(KEYS.SITE_CONFIG, JSON.stringify(data)),
-  
-  // Utility for ID generation
-  generateId: () => Math.random().toString(36).substr(2, 9),
-};
-`;
-    const blob = new Blob([fileContent], { type: 'text/typescript' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'store.ts';
-    a.click();
-    URL.revokeObjectURL(url);
-    alert('✅ deployment file generated!\n\n1. "store.ts" has been downloaded.\n2. Move this file to your "services" folder.\n3. Rebuild and deploy your site to apply changes globally.');
+    
+    if (confirm("This will overwrite Cloud Data with current Local Data. Continue?")) {
+      try {
+        await DataService.migrateToCloud();
+        alert("✅ Migration Successful! All local data is now in Firebase.");
+      } catch (e) {
+        alert("Migration failed. Check console.");
+        console.error(e);
+      }
+    }
   };
 
   /* --- RENDERERS --- */
@@ -283,11 +238,25 @@ export const DataService = {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 relative">
+       {/* Global Saving Indicator */}
+      {isSaving && (
+        <div className="fixed top-4 right-4 z-[100] bg-jakdang-accent text-white px-4 py-2 rounded shadow-lg flex items-center gap-2 animate-pulse">
+           <RefreshCw size={16} className="animate-spin" /> Saving to Server...
+        </div>
+      )}
+
       <div className="flex flex-col md:flex-row justify-between items-center border-b border-neutral-800 pb-4 gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-white">Console</h1>
-          <p className="font-mono text-neutral-500 text-sm">System Management Interface</p>
+          <h1 className="text-3xl font-bold text-white">Content Generator</h1>
+          <div className="flex items-center gap-2">
+             <p className="font-mono text-neutral-500 text-sm">System Status:</p>
+             {DataService.isConfigured ? (
+               <span className="text-xs bg-green-900 text-green-300 px-2 py-0.5 rounded flex items-center gap-1"><CloudLightning size={12}/> Dynamic Mode (Firebase)</span>
+             ) : (
+               <span className="text-xs bg-neutral-800 text-neutral-400 px-2 py-0.5 rounded flex items-center gap-1"><Database size={12}/> Static Mode (Local Only)</span>
+             )}
+          </div>
         </div>
         <button onClick={() => { setIsAuthenticated(false); onLogout(); }} className="flex items-center gap-2 text-sm text-neutral-500 hover:text-white">
           <LogOut size={16} /> EXIT
@@ -297,12 +266,13 @@ export const DataService = {
       {/* Tabs */}
       <div className="flex flex-wrap gap-2 border-b border-neutral-800">
         {[
+          { id: 'config', icon: Settings, label: 'Site Content' },
           { id: 'projects', icon: Layout, label: 'Projects' },
           { id: 'members', icon: Users, label: 'Members' },
           { id: 'activities', icon: Calendar, label: 'Activities' },
           { id: 'archive', icon: Archive, label: 'Archive' },
           { id: 'process', icon: FileText, label: 'Process' },
-          { id: 'config', icon: Settings, label: 'Site Content' },
+          { id: 'system', icon: Database, label: 'Database' },
         ].map(tab => (
           <button
             key={tab.id}
@@ -315,6 +285,19 @@ export const DataService = {
           </button>
         ))}
       </div>
+
+      {/* Deployment/DB Banner */}
+      {!DataService.isConfigured && activeTab !== 'system' && (
+        <div className="bg-neutral-900 border-l-4 border-yellow-600 p-4 flex justify-between items-center">
+          <div className="text-sm text-neutral-400">
+            <strong className="text-white block mb-1">⚠️ Running in Static Mode</strong>
+            Changes are only visible on this device. To enable global updates, connect a database.
+          </div>
+          <button onClick={() => setActiveTab('system')} className="text-xs bg-yellow-900/50 hover:bg-yellow-900 text-yellow-200 px-3 py-2 transition-colors uppercase font-bold border border-yellow-800">
+            Setup Database
+          </button>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
@@ -354,7 +337,7 @@ export const DataService = {
                    </div>
                 </div>
 
-                <button type="submit" className="w-full bg-white text-black font-bold py-2 hover:bg-jakdang-accent hover:text-white transition-colors">ADD</button>
+                <button type="submit" className="w-full bg-white text-black font-bold py-2 hover:bg-jakdang-accent hover:text-white transition-colors">ADD TO DATABASE</button>
               </form>
             </div>
             <div className="lg:col-span-2 space-y-2">
@@ -368,7 +351,7 @@ export const DataService = {
           </>
         )}
 
-        {/* ... (Other tabs logic is identical to previous, abbreviated here for clarity but fully preserved in logic) ... */}
+        {/* ... (Other tabs logic is identical, abbreviated here for clarity but fully preserved in implementation) ... */}
         {/* === MEMBERS TAB === */}
         {activeTab === 'members' && (
           <>
@@ -398,7 +381,7 @@ export const DataService = {
                    </div>
                 </div>
 
-                <button type="submit" className="w-full bg-white text-black font-bold py-2 hover:bg-jakdang-accent hover:text-white transition-colors">ADD</button>
+                <button type="submit" className="w-full bg-white text-black font-bold py-2 hover:bg-jakdang-accent hover:text-white transition-colors">ADD TO DATABASE</button>
               </form>
             </div>
             <div className="lg:col-span-2 space-y-2">
@@ -444,7 +427,7 @@ export const DataService = {
                    </div>
                 </div>
 
-                <button type="submit" className="w-full bg-white text-black font-bold py-2 hover:bg-jakdang-accent hover:text-white transition-colors">ADD</button>
+                <button type="submit" className="w-full bg-white text-black font-bold py-2 hover:bg-jakdang-accent hover:text-white transition-colors">ADD TO DATABASE</button>
               </form>
             </div>
             <div className="lg:col-span-2 space-y-2">
@@ -472,7 +455,7 @@ export const DataService = {
                   <input placeholder="Year" value={newArchive.year} onChange={e => setNewArchive({...newArchive, year: e.target.value})} className="bg-black border border-neutral-800 text-white px-3 py-2 outline-none" />
                 </div>
                 <textarea placeholder="Description" value={newArchive.description} onChange={e => setNewArchive({...newArchive, description: e.target.value})} className="w-full bg-black border border-neutral-800 px-3 py-2 text-white outline-none h-20" />
-                <button type="submit" className="w-full bg-white text-black font-bold py-2 hover:bg-jakdang-accent hover:text-white transition-colors">ADD</button>
+                <button type="submit" className="w-full bg-white text-black font-bold py-2 hover:bg-jakdang-accent hover:text-white transition-colors">ADD TO DATABASE</button>
               </form>
             </div>
             <div className="lg:col-span-2 space-y-2">
@@ -495,7 +478,7 @@ export const DataService = {
                  <input placeholder="Step Number (e.g. 01)" value={newProcess.stepNumber} onChange={e => setNewProcess({...newProcess, stepNumber: e.target.value})} className="w-full bg-black border border-neutral-800 px-3 py-2 text-white outline-none focus:border-jakdang-accent" required />
                  <input placeholder="Title" value={newProcess.title} onChange={e => setNewProcess({...newProcess, title: e.target.value})} className="w-full bg-black border border-neutral-800 px-3 py-2 text-white outline-none" required />
                  <textarea placeholder="Description" value={newProcess.description} onChange={e => setNewProcess({...newProcess, description: e.target.value})} className="w-full bg-black border border-neutral-800 px-3 py-2 text-white outline-none h-24" required />
-                 <button type="submit" className="w-full bg-white text-black font-bold py-2 hover:bg-jakdang-accent hover:text-white transition-colors">ADD</button>
+                 <button type="submit" className="w-full bg-white text-black font-bold py-2 hover:bg-jakdang-accent hover:text-white transition-colors">ADD TO DATABASE</button>
                </form>
             </div>
             <div className="lg:col-span-2 space-y-2">
@@ -523,7 +506,6 @@ export const DataService = {
              </div>
              
              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-               
                {/* Main Hero Section */}
                <div className="space-y-6 md:col-span-2 border-b border-neutral-800 pb-8">
                  <h4 className="text-jakdang-accent font-bold text-sm flex items-center gap-2">
@@ -579,6 +561,7 @@ export const DataService = {
                  </div>
                </div>
 
+               {/* ... (Other Config sections remain the same) ... */}
                <div className="space-y-4">
                  <h4 className="text-jakdang-accent font-bold text-sm border-b border-neutral-700 pb-2">About Page Text</h4>
                  <div>
@@ -602,40 +585,69 @@ export const DataService = {
                    <textarea name="contactCollabText" value={config.contactCollabText} onChange={handleConfigUpdate} className="w-full bg-black border border-neutral-800 px-3 py-2 text-white outline-none h-20" />
                  </div>
                </div>
-               
-               {/* Deployment Section */}
-               <div className="md:col-span-2 border-t border-neutral-800 pt-8 mt-4 bg-neutral-900 p-6">
-                  <h4 className="text-white font-bold text-sm flex items-center gap-2 mb-4">
-                     <Globe size={16} className="text-jakdang-accent" /> Publish Changes to Live Site
-                  </h4>
-                  <div className="flex items-start gap-3 bg-neutral-800/50 border border-neutral-700 p-5 mb-6 rounded">
-                    <Code className="text-jakdang-accent shrink-0 mt-0.5" size={20} />
-                    <div className="text-xs text-neutral-300 leading-relaxed space-y-3">
-                       <strong className="text-white block text-sm">Why do changes only show on my PC?</strong>
-                       <p>
-                         This is a <strong>Serverless Static Website</strong>. It does not have a real-time database. 
-                         When you edit content here, it is saved in your <em>browser's local storage</em>.
-                       </p>
-                       <p className="border-t border-neutral-700 pt-2 text-jakdang-muted">
-                         To make your changes visible to everyone on the internet, you must update the source code file.
-                       </p>
-                       <div className="bg-black/50 p-3 rounded border border-neutral-700 font-mono text-neutral-400">
-                         <strong>Deployment Steps:</strong><br/>
-                         1. Make all your edits in this Admin panel.<br/>
-                         2. Click the button below to generate <span className="text-white">store.ts</span>.<br/>
-                         3. Replace the file at <span className="text-jakdang-accent">services/store.ts</span> in your project folder.<br/>
-                         4. Rebuild and deploy your website.
-                       </div>
-                    </div>
-                  </div>
-                  <button 
-                     onClick={handleDownloadStore}
-                     className="w-full md:w-auto flex items-center justify-center gap-2 bg-white text-black px-8 py-4 font-bold hover:bg-jakdang-accent hover:text-white transition-colors uppercase tracking-widest text-sm shadow-lg hover:shadow-jakdang-accent/20"
-                  >
-                     <Download size={18} /> GENERATE DEPLOYMENT FILE (store.ts)
-                  </button>
+             </div>
+          </div>
+        )}
+
+        {/* === DATABASE TAB === */}
+        {activeTab === 'system' && (
+          <div className="lg:col-span-3 bg-neutral-900/50 p-8 border border-neutral-800">
+             <div className="flex items-center gap-3 mb-6 pb-6 border-b border-neutral-800">
+               <Database size={24} className="text-jakdang-accent" />
+               <h3 className="text-2xl font-bold text-white">Database Connection</h3>
+             </div>
+
+             <div className="grid md:grid-cols-2 gap-12">
+               {/* Instructions */}
+               <div className="space-y-6 text-sm text-neutral-400">
+                 <p className="leading-relaxed">
+                   To make this website <strong>dynamic</strong> (so changes are visible to everyone), you need to connect it to <strong>Google Firebase</strong>.
+                 </p>
+                 
+                 <div className="bg-neutral-800/50 p-4 border-l-2 border-jakdang-accent space-y-2">
+                   <strong className="text-white block">Setup Instructions:</strong>
+                   <ol className="list-decimal pl-4 space-y-2">
+                     <li>Go to <a href="https://console.firebase.google.com" target="_blank" className="text-jakdang-accent underline">Firebase Console</a> and create a project.</li>
+                     <li>Register a Web App (<code>&lt;/&gt;</code> icon) to get your <code>firebaseConfig</code>.</li>
+                     <li>Create a <strong>Firestore Database</strong> in the "Build" menu.</li>
+                     <li>Set Security Rules to <strong>Test Mode</strong> (or allow read/write).</li>
+                     <li>Open your project file <code>services/store.ts</code>.</li>
+                     <li>Paste the config keys into the <code>firebaseConfig</code> object.</li>
+                   </ol>
+                 </div>
                </div>
 
+               {/* Migration Actions */}
+               <div className="space-y-6">
+                 <div className="bg-black/50 p-6 border border-neutral-800">
+                    <h4 className="text-white font-bold mb-4 flex items-center gap-2">
+                      <CloudLightning size={18} className={DataService.isConfigured ? "text-green-500" : "text-neutral-600"} />
+                      Connection Status
+                    </h4>
+                    {DataService.isConfigured ? (
+                      <div className="text-green-400 text-sm mb-6">
+                        ✅ Connected to Firebase. All changes are synced globally.
+                      </div>
+                    ) : (
+                      <div className="text-red-400 text-sm mb-6">
+                        ❌ Not Configured. Running in Local Mode.
+                      </div>
+                    )}
+                    
+                    <h4 className="text-white font-bold mb-4">Data Migration</h4>
+                    <p className="text-xs text-neutral-500 mb-4">
+                       If you have data in Local Storage that you want to push to the Cloud Database, click below.
+                       (Only works if Firebase is connected).
+                    </p>
+                    <button 
+                      onClick={handleMigrateToCloud}
+                      disabled={!DataService.isConfigured}
+                      className="w-full bg-white text-black py-3 font-bold hover:bg-jakdang-accent hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed uppercase tracking-widest text-sm"
+                    >
+                      Migrate Local Data to Cloud
+                    </button>
+                 </div>
+               </div>
              </div>
           </div>
         )}

@@ -34,16 +34,36 @@ const App: React.FC = () => {
   const [archive, setArchive] = useState<ArchiveItem[]>([]);
   const [activities, setActivities] = useState<ActivityLog[]>([]);
   const [processSteps, setProcessSteps] = useState<ProcessStep[]>([]);
-  const [siteConfig, setSiteConfig] = useState<SiteConfig>(DataService.getSiteConfig());
+  const [siteConfig, setSiteConfig] = useState<SiteConfig>({
+    homeHeroTitle: "", homeHeroSubtitle: "", homeHeroDescription: "", homeHeroImageUrl: "",
+    aboutDefinition: "", aboutDescription: "", contactRecruitText: "", contactCollabText: ""
+  });
 
   // Initialize Data Effects and Splash Timer
   useEffect(() => {
-    setProjects(DataService.getProjects());
-    setMembers(DataService.getMembers());
-    setArchive(DataService.getArchive());
-    setActivities(DataService.getActivities());
-    setProcessSteps(DataService.getProcess());
-    setSiteConfig(DataService.getSiteConfig());
+    const loadAllData = async () => {
+      try {
+        const [p, m, a, act, proc, conf] = await Promise.all([
+          DataService.getProjects(),
+          DataService.getMembers(),
+          DataService.getArchive(),
+          DataService.getActivities(),
+          DataService.getProcess(),
+          DataService.getSiteConfig()
+        ]);
+
+        setProjects(p);
+        setMembers(m);
+        setArchive(a);
+        setActivities(act);
+        setProcessSteps(proc);
+        setSiteConfig(conf);
+      } catch (error) {
+        console.error("Failed to load data", error);
+      }
+    };
+
+    loadAllData();
 
     // Splash screen timer
     const timer = setTimeout(() => {
