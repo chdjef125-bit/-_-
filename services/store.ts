@@ -1,16 +1,8 @@
-import { Project, Member, ActivityLog, ArchiveItem, ProcessStep, SiteConfig } from '../types';
+import { Project, Member, ActivityLog, ArchiveItem, SiteConfig } from '../types';
 import { initializeApp } from 'firebase/app';
 import { getFirestore, collection, getDocs, setDoc, doc, getDoc } from 'firebase/firestore';
 
 // --- FIREBASE CONFIGURATION ---
-// TODO: [USER ACTION REQUIRED]
-// 1. Go to https://console.firebase.google.com/
-// 2. Create a new project.
-// 3. Register a web app (</> icon) and copy the SDK setup config.
-// 4. Paste the config values below.
-// 5. In Firebase Console > Build > Firestore Database > Create Database.
-// 6. Set Rules to "Start in test mode" (or allow read/write for development).
-
 const firebaseConfig = {
   apiKey: "AIzaSyBW9qe9dvj4KDCkFzCHQRnV2TFiQt7KDWQ",
   authDomain: "jktest2-66e34.firebaseapp.com",
@@ -34,66 +26,14 @@ if (isFirebaseConfigured) {
     console.error("Firebase initialization failed:", e);
   }
 } else {
-  console.warn("⚠️ Firebase is NOT configured. Running in LocalStorage (Static) mode. Edit services/store.ts to enable dynamic features.");
+  console.warn("⚠️ Firebase is NOT configured. Running in LocalStorage (Static) mode.");
 }
 
 // --- INITIAL MOCK DATA (Fallback) ---
-const INITIAL_PROJECTS: Project[] = [
-  {
-    id: '1',
-    title: 'Void in Silence',
-    category: 'Competition',
-    year: '2023',
-    author: 'Kim Min-jun',
-    description: 'A contemplative space designed for the busy urban environment, focusing on negative space and auditory exclusion.',
-    imageUrl: 'https://picsum.photos/800/600',
-    tags: ['Urban', 'Silence', 'Void']
-  },
-  {
-    id: '2',
-    title: 'Vertical Alley',
-    category: 'Academic',
-    year: '2024',
-    author: 'Lee So-yeon',
-    description: 'Reinterpreting the traditional Korean alleyway into a vertical skyscraper context.',
-    imageUrl: 'https://picsum.photos/800/601',
-    tags: ['Housing', 'Culture', 'Vertical']
-  },
-  {
-    id: '3',
-    title: 'Museum of Shadows',
-    category: 'Team',
-    year: '2022',
-    author: 'Team Alpha',
-    description: 'Light is the protagonist, but shadow is the narrator. An exhibition space defined by darkness.',
-    imageUrl: 'https://picsum.photos/800/602',
-    tags: ['Museum', 'Light', 'Shadow']
-  }
-];
-
-const INITIAL_MEMBERS: Member[] = [
-  { id: '1', name: 'Park Ji-sung', role: 'Leadership', cohort: '12th', philosophy: 'Design is editing constraints.', imageUrl: 'https://picsum.photos/200/200' },
-  { id: '2', name: 'Choi Yu-jin', role: 'Leadership', cohort: '12th', philosophy: 'Form follows fiction.', imageUrl: 'https://picsum.photos/200/201' },
-  { id: '3', name: 'Kang Tae-oh', role: 'Member', cohort: '13th', philosophy: 'Architecture is frozen music.', imageUrl: 'https://picsum.photos/200/202' },
-  { id: '4', name: 'Alumni Senior', role: 'Alumni', cohort: '5th', philosophy: 'Now working at OMA.', imageUrl: 'https://picsum.photos/200/203' },
-];
-
-const INITIAL_ARCHIVE: ArchiveItem[] = [
-  { id: '1', title: 'UAUS Exhibition Best Pavilion', type: 'Award', year: '2023', description: 'Awarded for the "Floating Brick" installation.' },
-  { id: '2', title: 'Space Magazine Feature', type: 'Publication', year: '2022', description: 'Student work featured in monthly issue.' },
-];
-
-const INITIAL_ACTIVITIES: ActivityLog[] = [
-  { id: '1', title: 'Spring Membership Training', date: '2024.03', type: 'MT', description: 'Building teamwork through survival games and architectural quizzes in the mountains.', imageUrl: 'https://picsum.photos/600/300' },
-  { id: '2', title: 'Naoshima Architecture Tour', date: '2023.11', type: 'Field Trip', description: 'Exploring the works of Tadao Ando. Analyzing light, concrete, and nature.', imageUrl: 'https://picsum.photos/601/300' }
-];
-
-const INITIAL_PROCESS: ProcessStep[] = [
-  { id: '1', stepNumber: '01', title: 'Site Reading', description: 'We do not just look at the site. We read its history, its invisible lines, and its potential narratives.' },
-  { id: '2', stepNumber: '02', title: 'Concept Diagramming', description: 'Translating abstract thoughts into concrete visual logic. Every line must have a reason.' },
-  { id: '3', stepNumber: '03', title: 'Mass Study & Critique', description: 'Physical models are mandatory. We destroy and rebuild until the proportions speak.' },
-  { id: '4', stepNumber: '04', title: 'Final Documentation', description: 'The project is not done until it is archived. We produce professional-grade panels and books.' }
-];
+const INITIAL_PROJECTS: Project[] = [];
+const INITIAL_MEMBERS: Member[] = [];
+const INITIAL_ARCHIVE: ArchiveItem[] = [];
+const INITIAL_ACTIVITIES: ActivityLog[] = [];
 
 const INITIAL_SITE_CONFIG: SiteConfig = {
   homeHeroTitle: "We don't just design.",
@@ -107,13 +47,13 @@ const INITIAL_SITE_CONFIG: SiteConfig = {
 };
 
 // LocalStorage Keys (Fallback)
+// Updated to '_v3' to force clear cache/members
 const KEYS = {
-  PROJECTS: 'jakdang_projects',
-  MEMBERS: 'jakdang_members',
-  ARCHIVE: 'jakdang_archive',
-  ACTIVITIES: 'jakdang_activities',
-  PROCESS: 'jakdang_process',
-  SITE_CONFIG: 'jakdang_config'
+  PROJECTS: 'jakdang_projects_v3',
+  MEMBERS: 'jakdang_members_v3',
+  ARCHIVE: 'jakdang_archive_v3',
+  ACTIVITIES: 'jakdang_activities_v3',
+  SITE_CONFIG: 'jakdang_config_v3'
 };
 
 // --- DATA SERVICE (ASYNC) ---
@@ -137,13 +77,11 @@ const fetchData = async <T>(collectionName: string, localKey: string, initial: T
   if (isFirebaseConfigured && db) {
     try {
       if (collectionName === 'config') {
-         // Config is a single document
          const docRef = doc(db, 'settings', 'siteConfig');
          const docSnap = await getDoc(docRef);
          if (docSnap.exists()) return docSnap.data() as T;
          return initial;
       } else {
-         // Arrays are collections
          const querySnapshot = await getDocs(collection(db, collectionName));
          const data: any[] = [];
          querySnapshot.forEach((doc) => {
@@ -156,25 +94,19 @@ const fetchData = async <T>(collectionName: string, localKey: string, initial: T
       return loadLocal(localKey, initial);
     }
   } else {
-    // Artificial delay for local storage to simulate async
     return new Promise(resolve => setTimeout(() => resolve(loadLocal(localKey, initial)), 100));
   }
 };
 
 // Generic Saver
 const saveData = async (collectionName: string, localKey: string, data: any) => {
-  // Always save to local for cache/backup
   saveLocal(localKey, data);
 
   if (isFirebaseConfigured && db) {
     try {
       if (collectionName === 'config') {
-        // Save Config Object
         await setDoc(doc(db, 'settings', 'siteConfig'), data);
       } else {
-        // Save Collection: Strategy -> Loop and SetDoc by ID
-        // Note: In a real app, you might want to handle deletions better. 
-        // Here we just upsert everything.
         const items = Array.isArray(data) ? data : [];
         const batchPromises = items.map(item => {
            if(item.id) {
@@ -207,9 +139,6 @@ export const DataService = {
   getActivities: () => fetchData<ActivityLog[]>('activities', KEYS.ACTIVITIES, INITIAL_ACTIVITIES),
   saveActivities: (data: ActivityLog[]) => saveData('activities', KEYS.ACTIVITIES, data),
 
-  getProcess: () => fetchData<ProcessStep[]>('process', KEYS.PROCESS, INITIAL_PROCESS),
-  saveProcess: (data: ProcessStep[]) => saveData('process', KEYS.PROCESS, data),
-
   getSiteConfig: () => fetchData<SiteConfig>('config', KEYS.SITE_CONFIG, INITIAL_SITE_CONFIG),
   saveSiteConfig: (data: SiteConfig) => saveData('config', KEYS.SITE_CONFIG, data),
   
@@ -224,7 +153,6 @@ export const DataService = {
     await saveData('members', KEYS.MEMBERS, loadLocal(KEYS.MEMBERS, INITIAL_MEMBERS));
     await saveData('archive', KEYS.ARCHIVE, loadLocal(KEYS.ARCHIVE, INITIAL_ARCHIVE));
     await saveData('activities', KEYS.ACTIVITIES, loadLocal(KEYS.ACTIVITIES, INITIAL_ACTIVITIES));
-    await saveData('process', KEYS.PROCESS, loadLocal(KEYS.PROCESS, INITIAL_PROCESS));
     await saveData('config', KEYS.SITE_CONFIG, loadLocal(KEYS.SITE_CONFIG, INITIAL_SITE_CONFIG));
     
     return true;

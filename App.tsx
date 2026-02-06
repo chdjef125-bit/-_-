@@ -3,22 +3,21 @@ import { Layout } from './components/Layout';
 import { Home } from './components/Home';
 import { Works } from './components/Works';
 import { Admin } from './components/Admin';
-import { About, Members, Process, Archive, Activity, Contact } from './components/OtherPages';
-import { PageView, Project, Member, ArchiveItem, ActivityLog, ProcessStep, SiteConfig } from './types';
+import { About, Members, Archive, Activity, Contact } from './components/OtherPages';
+import { PageView, Project, Member, ArchiveItem, ActivityLog, SiteConfig } from './types';
 import { DataService } from './services/store';
 
 // Splash Screen Component
 const SplashScreen: React.FC = () => {
   return (
     <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black">
-      <div className="relative p-10">
-        <h1 className="text-6xl md:text-8xl font-serif font-bold text-white splash-text text-center">
-          작당
+      <div className="relative p-10 flex flex-col items-center">
+        <h1 className="text-6xl md:text-8xl font-serif font-bold text-white splash-text text-center tracking-tight">
+          작당모의
         </h1>
-        <p className="text-white/50 text-xs tracking-[0.5em] mt-4 uppercase text-center splash-text" style={{ animationDelay: '0.3s' }}>
+        <p className="text-white/50 text-xs tracking-[0.5em] mt-6 uppercase text-center splash-fade" style={{ animationDelay: '0.5s' }}>
           Jakdang Architectural Studio
         </p>
-        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 h-[1px] bg-jakdang-accent splash-line"></div>
       </div>
     </div>
   );
@@ -33,7 +32,6 @@ const App: React.FC = () => {
   const [members, setMembers] = useState<Member[]>([]);
   const [archive, setArchive] = useState<ArchiveItem[]>([]);
   const [activities, setActivities] = useState<ActivityLog[]>([]);
-  const [processSteps, setProcessSteps] = useState<ProcessStep[]>([]);
   const [siteConfig, setSiteConfig] = useState<SiteConfig>({
     homeHeroTitle: "", homeHeroSubtitle: "", homeHeroDescription: "", homeHeroImageUrl: "",
     aboutDefinition: "", aboutDescription: "", contactRecruitText: "", contactCollabText: ""
@@ -43,12 +41,11 @@ const App: React.FC = () => {
   useEffect(() => {
     const loadAllData = async () => {
       try {
-        const [p, m, a, act, proc, conf] = await Promise.all([
+        const [p, m, a, act, conf] = await Promise.all([
           DataService.getProjects(),
           DataService.getMembers(),
           DataService.getArchive(),
           DataService.getActivities(),
-          DataService.getProcess(),
           DataService.getSiteConfig()
         ]);
 
@@ -56,7 +53,6 @@ const App: React.FC = () => {
         setMembers(m);
         setArchive(a);
         setActivities(act);
-        setProcessSteps(proc);
         setSiteConfig(conf);
       } catch (error) {
         console.error("Failed to load data", error);
@@ -87,8 +83,7 @@ const App: React.FC = () => {
         return <Members members={members} />;
       case 'works':
         return <Works projects={projects} />;
-      case 'process':
-        return <Process items={processSteps} />;
+      // Process route removed
       case 'activity':
         return <Activity items={activities} />;
       case 'archive':
@@ -102,7 +97,6 @@ const App: React.FC = () => {
             members={members} setMembers={setMembers}
             activities={activities} setActivities={setActivities}
             archive={archive} setArchive={setArchive}
-            process={processSteps} setProcess={setProcessSteps}
             config={siteConfig} setConfig={setSiteConfig}
             onLogout={() => setCurrentPage('home')} 
           />

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Member, ArchiveItem, ActivityLog, ProcessStep, SiteConfig, PageView } from '../types';
+import { Member, ArchiveItem, ActivityLog, SiteConfig, PageView } from '../types';
 import { FileText, MapPin, Mail, Instagram, ExternalLink, Calendar, BookOpen, Users, Send } from 'lucide-react';
 
 /* --- ABOUT PAGE --- */
@@ -10,7 +10,7 @@ export const About: React.FC<{ config: SiteConfig }> = ({ config }) => (
         Manifesto
       </div>
       <h1 className="text-4xl md:text-5xl font-serif font-bold text-white mb-6">About 작당모의</h1>
-      <p className="text-lg font-mono text-jakdang-muted">Est. 2012 / Seoul / Architectural Design Studio</p>
+      <p className="text-lg font-mono text-jakdang-muted">Est. 2021 / Busan / Architectural Design Studio</p>
     </div>
 
     <div className="grid md:grid-cols-2 gap-12">
@@ -80,53 +80,40 @@ export const Members: React.FC<{ members: Member[] }> = ({ members }) => {
     <div className="space-y-20">
       <section>
         <h2 className="text-3xl font-serif font-bold text-white mb-8 border-b border-white/10 pb-4">Leadership</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8">
-          {leadership.map(m => <MemberCard key={m.id} m={m} />)}
-        </div>
+        {leadership.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8">
+            {leadership.map(m => <MemberCard key={m.id} m={m} />)}
+          </div>
+        ) : (
+          <p className="text-neutral-500 font-mono italic">No leadership members listed.</p>
+        )}
       </section>
       
       <section>
         <h2 className="text-3xl font-serif font-bold text-white mb-8 border-b border-white/10 pb-4">Current Conspirators</h2>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-6">
-          {regular.map(m => <MemberCard key={m.id} m={m} />)}
-        </div>
+        {regular.length > 0 ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-6">
+            {regular.map(m => <MemberCard key={m.id} m={m} />)}
+          </div>
+        ) : (
+           <p className="text-neutral-500 font-mono italic">No members listed.</p>
+        )}
       </section>
 
       <section>
         <h2 className="text-3xl font-serif font-bold text-white mb-8 border-b border-white/10 pb-4">Alumni Network</h2>
         <p className="text-jakdang-muted mb-8">Our graduates are infiltrating top firms across the globe.</p>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-6">
-          {alumni.map(m => <MemberCard key={m.id} m={m} gray />)}
-        </div>
+        {alumni.length > 0 ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-6">
+            {alumni.map(m => <MemberCard key={m.id} m={m} gray />)}
+          </div>
+        ) : (
+           <p className="text-neutral-500 font-mono italic">No alumni listed.</p>
+        )}
       </section>
     </div>
   );
 };
-
-/* --- PROCESS PAGE --- */
-export const Process: React.FC<{ items: ProcessStep[] }> = ({ items }) => (
-  <div className="max-w-5xl mx-auto">
-    <div className="text-center mb-16">
-      <h1 className="text-4xl font-serif font-bold text-white mb-4">Methodology</h1>
-      <p className="text-neutral-400">We value the struggle more than the solution.</p>
-    </div>
-
-    <div className="space-y-24">
-      {items.sort((a,b) => a.stepNumber.localeCompare(b.stepNumber)).map((item, index) => (
-        <div key={item.id} className={`flex flex-col md:flex-row gap-12 items-center ${index % 2 === 1 ? 'md:flex-row-reverse' : ''}`}>
-          <div className="flex-1 w-full bg-neutral-900 aspect-video border border-neutral-800 flex items-center justify-center group hover:border-jakdang-accent transition-colors">
-            <span className="text-8xl font-black text-neutral-800 group-hover:text-neutral-700 transition-colors">{item.stepNumber}</span>
-          </div>
-          <div className="flex-1 space-y-4">
-            <span className="text-xs font-bold text-jakdang-accent tracking-widest uppercase">Step {item.stepNumber}</span>
-            <h3 className="text-2xl font-bold text-white">{item.title}</h3>
-            <p className="text-neutral-400 leading-relaxed">{item.description}</p>
-          </div>
-        </div>
-      ))}
-    </div>
-  </div>
-);
 
 /* --- ARCHIVE PAGE --- */
 export const Archive: React.FC<{ items: ArchiveItem[] }> = ({ items }) => (
@@ -168,6 +155,11 @@ export const Archive: React.FC<{ items: ArchiveItem[] }> = ({ items }) => (
               </td>
             </tr>
           ))}
+          {items.length === 0 && (
+             <tr>
+               <td colSpan={5} className="py-12 text-center text-neutral-500 font-mono">No records found.</td>
+             </tr>
+          )}
         </tbody>
       </table>
     </div>
@@ -196,6 +188,11 @@ export const Activity: React.FC<{ items: ActivityLog[] }> = ({ items }) => (
           </div>
         </div>
        ))}
+       {items.length === 0 && (
+         <div className="col-span-2 text-center py-20 text-neutral-500 font-mono border border-dashed border-neutral-800">
+           No activities logged.
+         </div>
+       )}
     </div>
   </div>
 );
@@ -244,28 +241,7 @@ export const Contact: React.FC<{ config: SiteConfig; onNavigate: (page: PageView
     <div className="max-w-3xl mx-auto py-12">
       <h1 className="text-5xl font-serif font-bold text-white mb-12 text-center">Make Contact</h1>
       
-      <div className="grid md:grid-cols-2 gap-12 mb-16">
-        <div className="space-y-6">
-          <h3 className="text-xl font-bold text-white border-b border-white/20 pb-2">Recruitment</h3>
-          <p className="text-sm text-neutral-400 leading-relaxed whitespace-pre-line">
-            {config.contactRecruitText}
-          </p>
-          <ul className="space-y-2 text-sm font-mono text-jakdang-accent">
-            <li>&gt; Portfolio Required (PDF)</li>
-            <li>&gt; Interview Mandatory</li>
-          </ul>
-        </div>
-        <div className="space-y-6">
-           <h3 className="text-xl font-bold text-white border-b border-white/20 pb-2">Collaboration</h3>
-           <p className="text-sm text-neutral-400 leading-relaxed whitespace-pre-line">
-             {config.contactCollabText}
-           </p>
-           <div className="flex gap-4">
-             <a href="#" className="p-3 border border-white/20 hover:bg-white hover:text-black transition-colors"><Instagram size={20} /></a>
-             <a href="#" className="p-3 border border-white/20 hover:bg-white hover:text-black transition-colors"><Mail size={20} /></a>
-           </div>
-        </div>
-      </div>
+      {/* Removed Recruitment and Collaboration Info Sections as requested */}
 
       <form 
         onSubmit={handleSubmit}

@@ -17,7 +17,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, onNavigat
     { label: 'About', value: 'about' },
     { label: 'Members', value: 'members' },
     { label: 'Works', value: 'works' },
-    { label: 'Process', value: 'process' },
+    // Process page removed
     { label: 'Activity', value: 'activity' },
     { label: 'Archive', value: 'archive' },
     { label: 'Contact', value: 'contact' },
@@ -134,14 +134,13 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, onNavigat
             </h3>
             <p className="text-neutral-500 text-sm max-w-xs leading-relaxed">
               Architecture, Conspired.<br/>
-              Est. 2012 / Seoul
+              Est. 2021 / Busan PKNU
             </p>
           </div>
           <div>
             <h4 className="text-xs font-bold uppercase tracking-widest text-neutral-400 mb-4">Contact</h4>
             <ul className="space-y-2 text-sm text-jakdang-muted">
-              <li className="flex items-center gap-2 hover:text-jakdang-accent cursor-pointer"><Mail size={16} /> contact@jakdang.kr</li>
-              <li className="flex items-center gap-2 hover:text-jakdang-accent cursor-pointer"><Instagram size={16} /> @jakdang_official</li>
+              <li className="flex items-center gap-2 hover:text-jakdang-accent cursor-pointer"><Mail size={16} /> chdjef125@gmail.com</li>
             </ul>
           </div>
           <div>

@@ -1,4 +1,5 @@
-export type PageView = 'home' | 'about' | 'members' | 'works' | 'process' | 'activity' | 'archive' | 'contact' | 'admin';
+
+export type PageView = 'home' | 'about' | 'members' | 'works' | 'activity' | 'archive' | 'contact' | 'admin';
 
 export interface SiteConfig {
   homeHeroTitle: string;
@@ -47,11 +48,4 @@ export interface ArchiveItem {
   year: string;
   description: string;
   link?: string;
-}
-
-export interface ProcessStep {
-  id: string;
-  stepNumber: string;
-  title: string;
-  description: string;
 }

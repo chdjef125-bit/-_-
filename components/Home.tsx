@@ -195,6 +195,11 @@ export const Home: React.FC<HomeProps> = ({ featuredProjects, onNavigate, config
                   </div>
                 </div>
               ))}
+              {featuredProjects.length === 0 && (
+                <div className="col-span-3 text-center py-12 text-neutral-600 font-mono text-sm border border-dashed border-neutral-800">
+                   Projects arriving soon...
+                </div>
+              )}
             </div>
           </section>
         </RevealSection>
@@ -208,9 +213,6 @@ export const Home: React.FC<HomeProps> = ({ featuredProjects, onNavigate, config
               우리는 함께 고민하고, 치열하게 토론하며, 결국에는 만들어낼 동료를 찾습니다.
             </p>
             <div className="flex flex-col md:flex-row justify-center gap-4">
-              <button onClick={() => onNavigate('contact')} className="bg-black text-white px-8 py-4 font-bold hover:bg-jakdang-accent transition-colors uppercase tracking-widest">
-                Apply for Membership
-              </button>
               <button onClick={() => onNavigate('contact')} className="border-2 border-black px-8 py-4 font-bold hover:bg-black hover:text-white transition-colors uppercase tracking-widest">
                 Contact for Collaboration
               </button>

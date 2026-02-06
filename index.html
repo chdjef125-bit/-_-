@@ -82,24 +82,18 @@
       }
 
       /* Splash Screen Animations */
-      @keyframes lineExpand {
-        0% { width: 0; opacity: 0; }
-        50% { width: 100px; opacity: 1; }
-        100% { width: 100%; opacity: 0; }
+      @keyframes simpleFadeIn {
+        0% { opacity: 0; transform: translateY(20px); }
+        100% { opacity: 1; transform: translateY(0); }
       }
       
-      @keyframes textFadeIn {
-        0% { opacity: 0; letter-spacing: 10px; filter: blur(10px); }
-        100% { opacity: 1; letter-spacing: normal; filter: blur(0); }
-      }
-
       .splash-text {
-        animation: textFadeIn 1.5s ease-out forwards;
+        animation: simpleFadeIn 1.5s ease-out forwards;
       }
       
-      .splash-line {
-        animation: lineExpand 2s ease-in-out forwards;
-        animation-delay: 0.5s;
+      .splash-fade {
+        animation: simpleFadeIn 1.5s ease-out forwards;
+        opacity: 0; /* Start invisible */
       }
     </style>
   <script type="importmap">

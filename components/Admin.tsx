@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Project, Member, ActivityLog, ArchiveItem, ProcessStep, SiteConfig } from '../types';
+import { Project, Member, ActivityLog, ArchiveItem, SiteConfig } from '../types';
 import { Trash2, Plus, Lock, LogOut, Layout, Users, Calendar, Archive, FileText, Settings, Upload, Image as ImageIcon, Link, Download, Save, AlertTriangle, Code, Globe, FileJson, RefreshCw, Database, CloudLightning } from 'lucide-react';
 import { DataService } from '../services/store';
 
@@ -12,21 +12,18 @@ interface AdminProps {
   setActivities: (a: ActivityLog[]) => void;
   archive: ArchiveItem[];
   setArchive: (a: ArchiveItem[]) => void;
-  process: ProcessStep[];
-  setProcess: (p: ProcessStep[]) => void;
   config: SiteConfig;
   setConfig: (c: SiteConfig) => void;
   onLogout: () => void;
 }
 
-type TabType = 'projects' | 'members' | 'activities' | 'archive' | 'process' | 'config' | 'system';
+type TabType = 'projects' | 'members' | 'activities' | 'archive' | 'config' | 'system';
 
 export const Admin: React.FC<AdminProps> = ({ 
   projects, setProjects, 
   members, setMembers, 
   activities, setActivities, 
   archive, setArchive, 
-  process, setProcess,
   config, setConfig,
   onLogout 
 }) => {
@@ -47,9 +44,6 @@ export const Admin: React.FC<AdminProps> = ({
   });
   const [newArchive, setNewArchive] = useState<Partial<ArchiveItem>>({
     title: '', type: 'Award', year: '2024', description: ''
-  });
-  const [newProcess, setNewProcess] = useState<Partial<ProcessStep>>({
-    stepNumber: '00', title: '', description: ''
   });
 
   const handleLogin = (e: React.FormEvent) => {
@@ -129,7 +123,6 @@ export const Admin: React.FC<AdminProps> = ({
   const deleteMember = createDeleteHandler(members, setMembers, DataService.saveMembers);
   const deleteActivity = createDeleteHandler(activities, setActivities, DataService.saveActivities);
   const deleteArchive = createDeleteHandler(archive, setArchive, DataService.saveArchive);
-  const deleteProcess = createDeleteHandler(process, setProcess, DataService.saveProcess);
 
   const handleAddProject = (e: React.FormEvent) => {
     e.preventDefault();
@@ -167,15 +160,6 @@ export const Admin: React.FC<AdminProps> = ({
     setNewArchive({ title: '', type: 'Award', year: '2024', description: '' });
   };
   
-  const handleAddProcess = (e: React.FormEvent) => {
-    e.preventDefault();
-    const item: ProcessStep = { ...newProcess as ProcessStep, id: DataService.generateId() };
-    const updated = [...process, item].sort((a,b) => a.stepNumber.localeCompare(b.stepNumber));
-    setProcess(updated);
-    safeSave(DataService.saveProcess, updated);
-    setNewProcess({ stepNumber: '', title: '', description: '' });
-  };
-
   const handleConfigUpdate = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const newConfig = { ...config, [e.target.name]: e.target.value };
     setConfig(newConfig);
@@ -271,7 +255,7 @@ export const Admin: React.FC<AdminProps> = ({
           { id: 'members', icon: Users, label: 'Members' },
           { id: 'activities', icon: Calendar, label: 'Activities' },
           { id: 'archive', icon: Archive, label: 'Archive' },
-          { id: 'process', icon: FileText, label: 'Process' },
+          // Process tab removed
           { id: 'system', icon: Database, label: 'Database' },
         ].map(tab => (
           <button
@@ -351,7 +335,6 @@ export const Admin: React.FC<AdminProps> = ({
           </>
         )}
 
-        {/* ... (Other tabs logic is identical, abbreviated here for clarity but fully preserved in implementation) ... */}
         {/* === MEMBERS TAB === */}
         {activeTab === 'members' && (
           <>
@@ -469,33 +452,6 @@ export const Admin: React.FC<AdminProps> = ({
           </>
         )}
         
-        {/* === PROCESS TAB === */}
-        {activeTab === 'process' && (
-          <>
-            <div className="lg:col-span-1 bg-neutral-900/50 p-6 border border-neutral-800 h-fit">
-               <h3 className="text-sm font-bold text-white mb-4 uppercase tracking-wider flex items-center gap-2"><Plus size={16}/> New Process Step</h3>
-               <form onSubmit={handleAddProcess} className="space-y-4">
-                 <input placeholder="Step Number (e.g. 01)" value={newProcess.stepNumber} onChange={e => setNewProcess({...newProcess, stepNumber: e.target.value})} className="w-full bg-black border border-neutral-800 px-3 py-2 text-white outline-none focus:border-jakdang-accent" required />
-                 <input placeholder="Title" value={newProcess.title} onChange={e => setNewProcess({...newProcess, title: e.target.value})} className="w-full bg-black border border-neutral-800 px-3 py-2 text-white outline-none" required />
-                 <textarea placeholder="Description" value={newProcess.description} onChange={e => setNewProcess({...newProcess, description: e.target.value})} className="w-full bg-black border border-neutral-800 px-3 py-2 text-white outline-none h-24" required />
-                 <button type="submit" className="w-full bg-white text-black font-bold py-2 hover:bg-jakdang-accent hover:text-white transition-colors">ADD TO DATABASE</button>
-               </form>
-            </div>
-            <div className="lg:col-span-2 space-y-2">
-               {process.map(p => (
-                 <div key={p.id} className="flex justify-between items-center p-4 border border-neutral-800 bg-neutral-900">
-                    <div>
-                      <span className="text-xs text-jakdang-accent font-bold">STEP {p.stepNumber}</span>
-                      <h4 className="font-bold text-white">{p.title}</h4>
-                      <p className="text-xs text-neutral-500 truncate max-w-xs">{p.description}</p>
-                    </div>
-                    <button onClick={() => deleteProcess(p.id)} className="text-neutral-600 hover:text-red-500"><Trash2 size={18}/></button>
-                 </div>
-               ))}
-            </div>
-          </>
-        )}
-
         {/* === SITE CONFIG TAB === */}
         {activeTab === 'config' && (
           <div className="lg:col-span-3 bg-neutral-900/50 p-6 border border-neutral-800">
