@@ -62,7 +62,8 @@ const INITIAL_SITE_CONFIG: SiteConfig = {
   homeHeroTitle: "We don't just design.",
   homeHeroSubtitle: "We Conspire.",
   homeHeroDescription: "건축을 작당합니다. 끊임없이 발전을 모의하는 설계집단, 작당입니다.",
-  homeHeroImageUrl: "https://images.unsplash.com/photo-1544531586-fde5298cdd40?q=80&w=2070&auto=format&fit=crop", // Default sketch-style placeholder
+  // Updated to a brick factory/warehouse renovation style image similar to the user's request
+  homeHeroImageUrl: "https://images.unsplash.com/photo-1577495508048-b635879837f1?q=80&w=2070&auto=format&fit=crop", 
   aboutDefinition: "We redefine 'Conspiracy' (작당/Jakdang). It is not a plot for harm, but a plot for creation. It is a collective effort to disturb the stagnant waters of conventional student architecture.",
   aboutDescription: "We operate as a semi-professional studio. Hierarchy exists only in experience, not in speech. Critique is sharp, but intended to sculpt better ideas.",
   contactRecruitText: "We recruit new conspirators every March and September. Check our Instagram for the secret code.",

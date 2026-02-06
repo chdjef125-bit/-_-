@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Member, ArchiveItem, ActivityLog, ProcessStep, SiteConfig, PageView } from '../types';
-import { FileText, MapPin, Mail, Instagram, ExternalLink, Calendar, BookOpen, Users } from 'lucide-react';
+import { FileText, MapPin, Mail, Instagram, ExternalLink, Calendar, BookOpen, Users, Send } from 'lucide-react';
 
 /* --- ABOUT PAGE --- */
 export const About: React.FC<{ config: SiteConfig }> = ({ config }) => (
@@ -205,6 +205,7 @@ export const Activity: React.FC<{ items: ActivityLog[] }> = ({ items }) => (
 export const Contact: React.FC<{ config: SiteConfig; onNavigate: (page: PageView) => void }> = ({ config, onNavigate }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Using Formspree for form handling
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -213,7 +214,7 @@ export const Contact: React.FC<{ config: SiteConfig; onNavigate: (page: PageView
     const formData = new FormData(form);
 
     try {
-      const response = await fetch("https://formspree.io/f/mzdapgjz", {
+      const response = await fetch("https://formspree.io/f/xeeljnpe", {
         method: "POST",
         body: formData,
         headers: {
@@ -222,18 +223,18 @@ export const Contact: React.FC<{ config: SiteConfig; onNavigate: (page: PageView
       });
 
       if (response.ok) {
-        alert("메시지가 성공적으로 전송되었습니다.");
+        alert("Transmission Successful. We will intercept your message shortly.");
         form.reset();
       } else {
         const data = await response.json();
         if ('errors' in data) {
-          alert("전송 실패: " + data["errors"].map((error: any) => error["message"]).join(", "));
+          alert("Transmission Failed: " + data["errors"].map((error: any) => error["message"]).join(", "));
         } else {
-          alert("메시지 전송에 실패했습니다. 다시 시도해주세요.");
+          alert("Transmission Error. Please try again.");
         }
       }
     } catch (error) {
-      alert("네트워크 오류가 발생했습니다. 나중에 다시 시도해주세요.");
+      alert("Network Error. Connection interrupted.");
     } finally {
       setIsSubmitting(false);
     }
@@ -246,22 +247,22 @@ export const Contact: React.FC<{ config: SiteConfig; onNavigate: (page: PageView
       <div className="grid md:grid-cols-2 gap-12 mb-16">
         <div className="space-y-6">
           <h3 className="text-xl font-bold text-white border-b border-white/20 pb-2">Recruitment</h3>
-          <p className="text-sm text-neutral-400">
+          <p className="text-sm text-neutral-400 leading-relaxed whitespace-pre-line">
             {config.contactRecruitText}
           </p>
           <ul className="space-y-2 text-sm font-mono text-jakdang-accent">
-            <li>&gt; Portfolio Required</li>
+            <li>&gt; Portfolio Required (PDF)</li>
             <li>&gt; Interview Mandatory</li>
           </ul>
         </div>
         <div className="space-y-6">
            <h3 className="text-xl font-bold text-white border-b border-white/20 pb-2">Collaboration</h3>
-           <p className="text-sm text-neutral-400">
+           <p className="text-sm text-neutral-400 leading-relaxed whitespace-pre-line">
              {config.contactCollabText}
            </p>
            <div className="flex gap-4">
-             <a href="#" className="p-3 border border-white/20 hover:bg-white hover:text-black transition-colors"><Instagram /></a>
-             <a href="#" className="p-3 border border-white/20 hover:bg-white hover:text-black transition-colors"><Mail /></a>
+             <a href="#" className="p-3 border border-white/20 hover:bg-white hover:text-black transition-colors"><Instagram size={20} /></a>
+             <a href="#" className="p-3 border border-white/20 hover:bg-white hover:text-black transition-colors"><Mail size={20} /></a>
            </div>
         </div>
       </div>
@@ -281,7 +282,7 @@ export const Contact: React.FC<{ config: SiteConfig; onNavigate: (page: PageView
             />
           </div>
           <div>
-            <label className="block text-xs font-mono text-neutral-500 mb-2">CONTACT FREQUENCY (Email)</label>
+            <label className="block text-xs font-mono text-neutral-500 mb-2">RETURN ADDRESS (Email)</label>
             <input 
               type="email" 
               name="email"
@@ -299,6 +300,7 @@ export const Contact: React.FC<{ config: SiteConfig; onNavigate: (page: PageView
             <option value="Recruitment Inquiry">Recruitment Inquiry</option>
             <option value="Project Collaboration">Project Collaboration</option>
             <option value="General Question">General Question</option>
+            <option value="Site Data Report">Site Data Report</option>
           </select>
         </div>
         <div>
@@ -312,9 +314,9 @@ export const Contact: React.FC<{ config: SiteConfig; onNavigate: (page: PageView
         <button 
           type="submit" 
           disabled={isSubmitting}
-          className="w-full bg-white text-black font-bold py-4 hover:bg-jakdang-accent hover:text-white transition-all uppercase tracking-widest disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full bg-white text-black font-bold py-4 hover:bg-jakdang-accent hover:text-white transition-all uppercase tracking-widest disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
-          {isSubmitting ? 'Transmitting...' : 'Transmit Message'}
+          {isSubmitting ? 'Transmitting...' : <><Send size={18} /> Transmit Message</>}
         </button>
       </form>
     </div>

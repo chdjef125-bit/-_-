@@ -7,8 +7,26 @@ import { About, Members, Process, Archive, Activity, Contact } from './component
 import { PageView, Project, Member, ArchiveItem, ActivityLog, ProcessStep, SiteConfig } from './types';
 import { DataService } from './services/store';
 
+// Splash Screen Component
+const SplashScreen: React.FC = () => {
+  return (
+    <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black">
+      <div className="relative p-10">
+        <h1 className="text-6xl md:text-8xl font-serif font-bold text-white splash-text text-center">
+          작당
+        </h1>
+        <p className="text-white/50 text-xs tracking-[0.5em] mt-4 uppercase text-center splash-text" style={{ animationDelay: '0.3s' }}>
+          Jakdang Architectural Studio
+        </p>
+        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 h-[1px] bg-jakdang-accent splash-line"></div>
+      </div>
+    </div>
+  );
+};
+
 const App: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<PageView>('home');
+  const [loading, setLoading] = useState(true);
   
   // Data State
   const [projects, setProjects] = useState<Project[]>([]);
@@ -16,9 +34,9 @@ const App: React.FC = () => {
   const [archive, setArchive] = useState<ArchiveItem[]>([]);
   const [activities, setActivities] = useState<ActivityLog[]>([]);
   const [processSteps, setProcessSteps] = useState<ProcessStep[]>([]);
-  const [siteConfig, setSiteConfig] = useState<SiteConfig>(DataService.getSiteConfig()); // Initialize with store data immediately
+  const [siteConfig, setSiteConfig] = useState<SiteConfig>(DataService.getSiteConfig());
 
-  // Initialize Data Effects
+  // Initialize Data Effects and Splash Timer
   useEffect(() => {
     setProjects(DataService.getProjects());
     setMembers(DataService.getMembers());
@@ -26,6 +44,13 @@ const App: React.FC = () => {
     setActivities(DataService.getActivities());
     setProcessSteps(DataService.getProcess());
     setSiteConfig(DataService.getSiteConfig());
+
+    // Splash screen timer
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 2500);
+
+    return () => clearTimeout(timer);
   }, []);
 
   const handleNavigate = (page: PageView) => {
@@ -66,6 +91,10 @@ const App: React.FC = () => {
         return <Home featuredProjects={projects} onNavigate={handleNavigate} config={siteConfig} />;
     }
   };
+
+  if (loading) {
+    return <SplashScreen />;
+  }
 
   return (
     <Layout currentPage={currentPage} onNavigate={handleNavigate}>

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Project, Member, ActivityLog, ArchiveItem, ProcessStep, SiteConfig } from '../types';
-import { Trash2, Plus, Lock, LogOut, Layout, Users, Calendar, Archive, FileText, Settings, Upload, Image as ImageIcon, Link } from 'lucide-react';
+import { Trash2, Plus, Lock, LogOut, Layout, Users, Calendar, Archive, FileText, Settings, Upload, Image as ImageIcon, Link, Download, Save, AlertTriangle, Code, Globe } from 'lucide-react';
 import { DataService } from '../services/store';
 
 interface AdminProps {
@@ -59,23 +59,56 @@ export const Admin: React.FC<AdminProps> = ({
 
   /* --- HANDLERS --- */
 
+  // Optimized Image Uploader with resizing
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, setter: (url: string) => void) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Basic size check (approx 2MB limit for localStorage safety)
-      if (file.size > 2 * 1024 * 1024) {
-        alert("File too large. Please select an image under 2MB.");
+      if (file.size > 5 * 1024 * 1024) {
+        alert("File is too large (>5MB). Please pick a smaller image.");
         return;
       }
+
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setter(reader.result as string);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+          
+          const MAX_WIDTH = 1200;
+          if (width > MAX_WIDTH) {
+            height = (MAX_WIDTH / width) * height;
+            width = MAX_WIDTH;
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(img, 0, 0, width, height);
+
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+          setter(dataUrl);
+        };
+        img.src = event.target?.result as string;
       };
       reader.readAsDataURL(file);
     }
   };
   
-  // Generic delete handler
+  const safeSave = <T,>(saveFn: (data: T) => void, data: T) => {
+    try {
+      saveFn(data);
+    } catch (e: any) {
+      if (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED') {
+        alert("Storage Quota Exceeded! Image too large. Use an external URL.");
+      } else {
+        console.error(e);
+        alert("Failed to save data locally.");
+      }
+    }
+  };
+  
   const createDeleteHandler = <T extends { id: string }>(
     data: T[], 
     setter: (d: T[]) => void, 
@@ -84,7 +117,7 @@ export const Admin: React.FC<AdminProps> = ({
     if (confirm('Permanently delete record?')) {
       const updated = data.filter(item => item.id !== id);
       setter(updated);
-      persister(updated);
+      safeSave(persister, updated);
     }
   };
 
@@ -94,13 +127,12 @@ export const Admin: React.FC<AdminProps> = ({
   const deleteArchive = createDeleteHandler(archive, setArchive, DataService.saveArchive);
   const deleteProcess = createDeleteHandler(process, setProcess, DataService.saveProcess);
 
-  // Add Handlers
   const handleAddProject = (e: React.FormEvent) => {
     e.preventDefault();
     const item: Project = { ...newProject as Project, id: DataService.generateId() };
     const updated = [item, ...projects];
     setProjects(updated);
-    DataService.saveProjects(updated);
+    safeSave(DataService.saveProjects, updated);
     setNewProject({ title: '', category: 'Academic', year: '2024', author: '', description: '', imageUrl: '', tags: [] });
   };
 
@@ -109,7 +141,7 @@ export const Admin: React.FC<AdminProps> = ({
     const item: Member = { ...newMember as Member, id: DataService.generateId() };
     const updated = [item, ...members];
     setMembers(updated);
-    DataService.saveMembers(updated);
+    safeSave(DataService.saveMembers, updated);
     setNewMember({ name: '', role: 'Member', cohort: '13th', philosophy: '', imageUrl: '' });
   };
 
@@ -118,7 +150,7 @@ export const Admin: React.FC<AdminProps> = ({
     const item: ActivityLog = { ...newActivity as ActivityLog, id: DataService.generateId() };
     const updated = [item, ...activities];
     setActivities(updated);
-    DataService.saveActivities(updated);
+    safeSave(DataService.saveActivities, updated);
     setNewActivity({ title: '', date: '2024.01', type: 'Workshop', description: '', imageUrl: '' });
   };
 
@@ -127,7 +159,7 @@ export const Admin: React.FC<AdminProps> = ({
     const item: ArchiveItem = { ...newArchive as ArchiveItem, id: DataService.generateId() };
     const updated = [item, ...archive];
     setArchive(updated);
-    DataService.saveArchive(updated);
+    safeSave(DataService.saveArchive, updated);
     setNewArchive({ title: '', type: 'Award', year: '2024', description: '' });
   };
   
@@ -136,22 +168,90 @@ export const Admin: React.FC<AdminProps> = ({
     const item: ProcessStep = { ...newProcess as ProcessStep, id: DataService.generateId() };
     const updated = [...process, item].sort((a,b) => a.stepNumber.localeCompare(b.stepNumber));
     setProcess(updated);
-    DataService.saveProcess(updated);
+    safeSave(DataService.saveProcess, updated);
     setNewProcess({ stepNumber: '', title: '', description: '' });
   };
 
   const handleConfigUpdate = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const newConfig = { ...config, [e.target.name]: e.target.value };
     setConfig(newConfig);
-    DataService.saveSiteConfig(newConfig);
+    safeSave(DataService.saveSiteConfig, newConfig);
   };
   
   const handleHeroImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     handleImageUpload(e, (url) => {
       const newConfig = { ...config, homeHeroImageUrl: url };
       setConfig(newConfig);
-      DataService.saveSiteConfig(newConfig);
+      safeSave(DataService.saveSiteConfig, newConfig);
     });
+  };
+
+  const handleDownloadStore = () => {
+    const fileContent = `import { Project, Member, ActivityLog, ArchiveItem, ProcessStep, SiteConfig } from '../types';
+
+const INITIAL_PROJECTS: Project[] = ${JSON.stringify(projects, null, 2)};
+const INITIAL_MEMBERS: Member[] = ${JSON.stringify(members, null, 2)};
+const INITIAL_ARCHIVE: ArchiveItem[] = ${JSON.stringify(archive, null, 2)};
+const INITIAL_ACTIVITIES: ActivityLog[] = ${JSON.stringify(activities, null, 2)};
+const INITIAL_PROCESS: ProcessStep[] = ${JSON.stringify(process, null, 2)};
+const INITIAL_SITE_CONFIG: SiteConfig = ${JSON.stringify(config, null, 2)};
+
+// LocalStorage Keys
+const KEYS = {
+  PROJECTS: 'jakdang_projects',
+  MEMBERS: 'jakdang_members',
+  ARCHIVE: 'jakdang_archive',
+  ACTIVITIES: 'jakdang_activities',
+  PROCESS: 'jakdang_process',
+  SITE_CONFIG: 'jakdang_config'
+};
+
+// Helper to load or initialize
+const loadData = <T,>(key: string, initial: T): T => {
+  try {
+    const stored = localStorage.getItem(key);
+    if (!stored) {
+      localStorage.setItem(key, JSON.stringify(initial));
+      return initial;
+    }
+    return JSON.parse(stored);
+  } catch (e) {
+    console.error("Storage error", e);
+    return initial;
+  }
+};
+
+export const DataService = {
+  getProjects: (): Project[] => loadData(KEYS.PROJECTS, INITIAL_PROJECTS),
+  saveProjects: (data: Project[]) => localStorage.setItem(KEYS.PROJECTS, JSON.stringify(data)),
+  
+  getMembers: (): Member[] => loadData(KEYS.MEMBERS, INITIAL_MEMBERS),
+  saveMembers: (data: Member[]) => localStorage.setItem(KEYS.MEMBERS, JSON.stringify(data)),
+  
+  getArchive: (): ArchiveItem[] => loadData(KEYS.ARCHIVE, INITIAL_ARCHIVE),
+  saveArchive: (data: ArchiveItem[]) => localStorage.setItem(KEYS.ARCHIVE, JSON.stringify(data)),
+
+  getActivities: (): ActivityLog[] => loadData(KEYS.ACTIVITIES, INITIAL_ACTIVITIES),
+  saveActivities: (data: ActivityLog[]) => localStorage.setItem(KEYS.ACTIVITIES, JSON.stringify(data)),
+
+  getProcess: (): ProcessStep[] => loadData(KEYS.PROCESS, INITIAL_PROCESS),
+  saveProcess: (data: ProcessStep[]) => localStorage.setItem(KEYS.PROCESS, JSON.stringify(data)),
+
+  getSiteConfig: (): SiteConfig => loadData(KEYS.SITE_CONFIG, INITIAL_SITE_CONFIG),
+  saveSiteConfig: (data: SiteConfig) => localStorage.setItem(KEYS.SITE_CONFIG, JSON.stringify(data)),
+  
+  // Utility for ID generation
+  generateId: () => Math.random().toString(36).substr(2, 9),
+};
+`;
+    const blob = new Blob([fileContent], { type: 'text/typescript' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'store.ts';
+    a.click();
+    URL.revokeObjectURL(url);
+    alert('✅ deployment file generated!\n\n1. "store.ts" has been downloaded.\n2. Move this file to your "services" folder.\n3. Rebuild and deploy your site to apply changes globally.');
   };
 
   /* --- RENDERERS --- */
@@ -240,7 +340,7 @@ export const Admin: React.FC<AdminProps> = ({
                    <div className="relative">
                      <input type="file" accept="image/*" onChange={e => handleImageUpload(e, url => setNewProject({...newProject, imageUrl: url}))} className="hidden" id="proj-img" />
                      <label htmlFor="proj-img" className="flex items-center justify-center w-full h-24 border border-dashed border-neutral-700 hover:border-jakdang-accent cursor-pointer text-neutral-500 hover:text-white transition-colors">
-                       {newProject.imageUrl ? <img src={newProject.imageUrl} className="h-full w-full object-cover" alt="Preview"/> : <div className="flex flex-col items-center"><Upload size={20}/> <span className="text-xs mt-1">Upload Image</span></div>}
+                       {newProject.imageUrl ? <img src={newProject.imageUrl} className="h-full w-full object-cover" alt="Preview"/> : <div className="flex flex-col items-center"><Upload size={20}/> <span className="text-xs mt-1">Upload Image (Auto-resized)</span></div>}
                      </label>
                    </div>
                    <div className="mt-2 flex items-center gap-2">
@@ -268,6 +368,7 @@ export const Admin: React.FC<AdminProps> = ({
           </>
         )}
 
+        {/* ... (Other tabs logic is identical to previous, abbreviated here for clarity but fully preserved in logic) ... */}
         {/* === MEMBERS TAB === */}
         {activeTab === 'members' && (
           <>
@@ -283,23 +384,17 @@ export const Admin: React.FC<AdminProps> = ({
                 </div>
                 <input placeholder="Philosophy (One liner)" value={newMember.philosophy} onChange={e => setNewMember({...newMember, philosophy: e.target.value})} className="w-full bg-black border border-neutral-800 px-3 py-2 text-white outline-none" />
                 
-                {/* Image Upload */}
                 <div>
                    <label className="block text-xs text-neutral-500 mb-1">Profile Image</label>
                    <div className="relative">
                      <input type="file" accept="image/*" onChange={e => handleImageUpload(e, url => setNewMember({...newMember, imageUrl: url}))} className="hidden" id="mem-img" />
                      <label htmlFor="mem-img" className="flex items-center justify-center w-full h-24 border border-dashed border-neutral-700 hover:border-jakdang-accent cursor-pointer text-neutral-500 hover:text-white transition-colors">
-                       {newMember.imageUrl ? <img src={newMember.imageUrl} className="h-full w-full object-cover" alt="Preview"/> : <div className="flex flex-col items-center"><Upload size={20}/> <span className="text-xs mt-1">Upload Image</span></div>}
+                       {newMember.imageUrl ? <img src={newMember.imageUrl} className="h-full w-full object-cover" alt="Preview"/> : <div className="flex flex-col items-center"><Upload size={20}/> <span className="text-xs mt-1">Upload Image (Auto-resized)</span></div>}
                      </label>
                    </div>
                    <div className="mt-2 flex items-center gap-2">
                      <Link size={12} className="text-neutral-500" />
-                     <input 
-                        placeholder="Or paste Image URL" 
-                        value={newMember.imageUrl} 
-                        onChange={e => setNewMember({...newMember, imageUrl: e.target.value})}
-                        className="bg-transparent border-b border-neutral-800 text-xs w-full py-1 text-white outline-none focus:border-jakdang-accent"
-                     />
+                     <input placeholder="Or paste Image URL" value={newMember.imageUrl} onChange={e => setNewMember({...newMember, imageUrl: e.target.value})} className="bg-transparent border-b border-neutral-800 text-xs w-full py-1 text-white outline-none focus:border-jakdang-accent" />
                    </div>
                 </div>
 
@@ -335,23 +430,17 @@ export const Admin: React.FC<AdminProps> = ({
                 </div>
                 <textarea placeholder="Description" value={newActivity.description} onChange={e => setNewActivity({...newActivity, description: e.target.value})} className="w-full bg-black border border-neutral-800 px-3 py-2 text-white outline-none h-20" />
                 
-                {/* Image Upload */}
                 <div>
                    <label className="block text-xs text-neutral-500 mb-1">Activity Image</label>
                    <div className="relative">
                      <input type="file" accept="image/*" onChange={e => handleImageUpload(e, url => setNewActivity({...newActivity, imageUrl: url}))} className="hidden" id="act-img" />
                      <label htmlFor="act-img" className="flex items-center justify-center w-full h-24 border border-dashed border-neutral-700 hover:border-jakdang-accent cursor-pointer text-neutral-500 hover:text-white transition-colors">
-                       {newActivity.imageUrl ? <img src={newActivity.imageUrl} className="h-full w-full object-cover" alt="Preview"/> : <div className="flex flex-col items-center"><Upload size={20}/> <span className="text-xs mt-1">Upload Image</span></div>}
+                       {newActivity.imageUrl ? <img src={newActivity.imageUrl} className="h-full w-full object-cover" alt="Preview"/> : <div className="flex flex-col items-center"><Upload size={20}/> <span className="text-xs mt-1">Upload Image (Auto-resized)</span></div>}
                      </label>
                    </div>
                    <div className="mt-2 flex items-center gap-2">
                      <Link size={12} className="text-neutral-500" />
-                     <input 
-                        placeholder="Or paste Image URL" 
-                        value={newActivity.imageUrl} 
-                        onChange={e => setNewActivity({...newActivity, imageUrl: e.target.value})}
-                        className="bg-transparent border-b border-neutral-800 text-xs w-full py-1 text-white outline-none focus:border-jakdang-accent"
-                     />
+                     <input placeholder="Or paste Image URL" value={newActivity.imageUrl} onChange={e => setNewActivity({...newActivity, imageUrl: e.target.value})} className="bg-transparent border-b border-neutral-800 text-xs w-full py-1 text-white outline-none focus:border-jakdang-accent" />
                    </div>
                 </div>
 
@@ -427,9 +516,12 @@ export const Admin: React.FC<AdminProps> = ({
         {/* === SITE CONFIG TAB === */}
         {activeTab === 'config' && (
           <div className="lg:col-span-3 bg-neutral-900/50 p-6 border border-neutral-800">
-             <h3 className="text-lg font-bold text-white mb-6 uppercase tracking-wider flex items-center gap-2">
-               <Settings size={20} /> Site Content Configuration
-             </h3>
+             <div className="flex justify-between items-center mb-6">
+                <h3 className="text-lg font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                  <Settings size={20} /> Site Content Configuration
+                </h3>
+             </div>
+             
              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                
                {/* Main Hero Section */}
@@ -509,6 +601,39 @@ export const Admin: React.FC<AdminProps> = ({
                    <label className="block text-xs text-neutral-500 mb-1">Collaboration Text</label>
                    <textarea name="contactCollabText" value={config.contactCollabText} onChange={handleConfigUpdate} className="w-full bg-black border border-neutral-800 px-3 py-2 text-white outline-none h-20" />
                  </div>
+               </div>
+               
+               {/* Deployment Section */}
+               <div className="md:col-span-2 border-t border-neutral-800 pt-8 mt-4 bg-neutral-900 p-6">
+                  <h4 className="text-white font-bold text-sm flex items-center gap-2 mb-4">
+                     <Globe size={16} className="text-jakdang-accent" /> Publish Changes to Live Site
+                  </h4>
+                  <div className="flex items-start gap-3 bg-neutral-800/50 border border-neutral-700 p-5 mb-6 rounded">
+                    <Code className="text-jakdang-accent shrink-0 mt-0.5" size={20} />
+                    <div className="text-xs text-neutral-300 leading-relaxed space-y-3">
+                       <strong className="text-white block text-sm">Why do changes only show on my PC?</strong>
+                       <p>
+                         This is a <strong>Serverless Static Website</strong>. It does not have a real-time database. 
+                         When you edit content here, it is saved in your <em>browser's local storage</em>.
+                       </p>
+                       <p className="border-t border-neutral-700 pt-2 text-jakdang-muted">
+                         To make your changes visible to everyone on the internet, you must update the source code file.
+                       </p>
+                       <div className="bg-black/50 p-3 rounded border border-neutral-700 font-mono text-neutral-400">
+                         <strong>Deployment Steps:</strong><br/>
+                         1. Make all your edits in this Admin panel.<br/>
+                         2. Click the button below to generate <span className="text-white">store.ts</span>.<br/>
+                         3. Replace the file at <span className="text-jakdang-accent">services/store.ts</span> in your project folder.<br/>
+                         4. Rebuild and deploy your website.
+                       </div>
+                    </div>
+                  </div>
+                  <button 
+                     onClick={handleDownloadStore}
+                     className="w-full md:w-auto flex items-center justify-center gap-2 bg-white text-black px-8 py-4 font-bold hover:bg-jakdang-accent hover:text-white transition-colors uppercase tracking-widest text-sm shadow-lg hover:shadow-jakdang-accent/20"
+                  >
+                     <Download size={18} /> GENERATE DEPLOYMENT FILE (store.ts)
+                  </button>
                </div>
 
              </div>
