@@ -63,6 +63,9 @@ const INITIAL_SITE_CONFIG: SiteConfig = {
   aboutDefinition: "We redefine 'Conspiracy' (작당/Jakdang). It is not a plot for harm, but a plot for creation. It is a collective effort to disturb the stagnant waters of conventional student architecture.",
   contactRecruitText: "We recruit new conspirators every March and September. Check our Instagram for the secret code.",
   contactCollabText: "Open for exhibitions, joint studios, and freelance design commissions.",
+  contactAddress: "123 Design District, Busan\nSouth Korea 48000",
+  contactEmail: "hello@jakdang.com",
+  contactInstagram: "instagram.com/jakdang_studio"
 };
 
 // LocalStorage Keys (Fallback)

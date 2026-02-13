@@ -12,6 +12,10 @@ export interface SiteConfig {
   aboutDefinition: string;
   contactRecruitText: string;
   contactCollabText: string;
+  // New Contact Details
+  contactAddress?: string;
+  contactEmail?: string;
+  contactInstagram?: string;
 }
 
 export interface Project {

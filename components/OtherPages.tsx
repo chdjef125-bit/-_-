@@ -191,12 +191,13 @@ export const Contact: React.FC<{ config: SiteConfig; onNavigate: (page: PageView
            <div className="space-y-8 font-mono text-sm text-neutral-400">
              <div>
                <strong className="block text-white mb-2 uppercase tracking-widest">Studio Address</strong>
-               <p>123 Design District, Busan<br/>South Korea 48000</p>
+               {/* Use pre-wrap to respect newlines from the admin text area */}
+               <p className="whitespace-pre-wrap">{config.contactAddress || "123 Design District, Busan\nSouth Korea 48000"}</p>
              </div>
              <div>
                <strong className="block text-white mb-2 uppercase tracking-widest">Digital Channels</strong>
-               <p>instagram.com/jakdang_studio</p>
-               <p>hello@jakdang.com</p>
+               <p>{config.contactInstagram || "instagram.com/jakdang_studio"}</p>
+               <p>{config.contactEmail || "hello@jakdang.com"}</p>
              </div>
            </div>
         </div>

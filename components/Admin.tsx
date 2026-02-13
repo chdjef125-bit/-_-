@@ -48,7 +48,7 @@ export const Admin: React.FC<AdminProps> = ({
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (password === '1111') setIsAuthenticated(true);
+    if (password === '5758') setIsAuthenticated(true);
     else alert('Access Denied');
   };
 
@@ -590,6 +590,18 @@ export const Admin: React.FC<AdminProps> = ({
                  <div>
                    <label className="block text-xs text-neutral-500 mb-1">Collaboration Text</label>
                    <textarea name="contactCollabText" value={config.contactCollabText} onChange={handleConfigUpdate} className="w-full bg-black border border-neutral-700 px-3 py-2 text-white outline-none h-20" />
+                 </div>
+                 <div>
+                   <label className="block text-xs text-neutral-500 mb-1">Studio Address (Use Enter for line breaks)</label>
+                   <textarea name="contactAddress" value={config.contactAddress || ''} onChange={handleConfigUpdate} className="w-full bg-black border border-neutral-700 px-3 py-2 text-white outline-none h-20" placeholder="e.g. 123 Street..." />
+                 </div>
+                 <div>
+                   <label className="block text-xs text-neutral-500 mb-1">Instagram</label>
+                   <input name="contactInstagram" value={config.contactInstagram || ''} onChange={handleConfigUpdate} className="w-full bg-black border border-neutral-700 px-3 py-2 text-white outline-none" placeholder="e.g. instagram.com/..." />
+                 </div>
+                 <div>
+                   <label className="block text-xs text-neutral-500 mb-1">Email</label>
+                   <input name="contactEmail" value={config.contactEmail || ''} onChange={handleConfigUpdate} className="w-full bg-black border border-neutral-700 px-3 py-2 text-white outline-none" placeholder="e.g. hello@..." />
                  </div>
                </div>
              </div>
