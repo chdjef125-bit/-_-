@@ -2,8 +2,6 @@ import React, { useState } from 'react';
 import { Member, ArchiveItem, ActivityLog, SiteConfig, PageView } from '../types';
 import { FileText, MapPin, Mail, Instagram, ExternalLink, Calendar, BookOpen, Users, Send } from 'lucide-react';
 
-/* --- ABOUT PAGE REMOVED --- */
-
 /* --- MEMBERS PAGE --- */
 
 const MemberCard: React.FC<{ m: Member, gray?: boolean }> = ({ m, gray = false }) => (
@@ -155,12 +153,30 @@ export const Contact: React.FC<{ config: SiteConfig; onNavigate: (page: PageView
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsSubmitting(true);
-    // Simulating form submission
-    setTimeout(() => {
+    
+    const form = e.currentTarget;
+    const formData = new FormData(form);
+
+    try {
+      const response = await fetch("https://formspree.io/f/xzdaewyk", {
+        method: "POST",
+        body: formData,
+        headers: {
+          'Accept': 'application/json'
+        }
+      });
+
+      if (response.ok) {
         alert("Transmission Successful.");
-        setIsSubmitting(false);
-        (e.target as HTMLFormElement).reset();
-    }, 1500);
+        form.reset();
+      } else {
+        alert("Transmission Failed. Please check your inputs and try again.");
+      }
+    } catch (error) {
+      alert("Network Error. Please try again later.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -210,9 +226,11 @@ export const Contact: React.FC<{ config: SiteConfig; onNavigate: (page: PageView
           <div className="group">
             <select 
               name="subject"
+              required
+              defaultValue=""
               className="w-full bg-black border-b border-neutral-800 py-6 text-xl text-white outline-none focus:border-white transition-colors text-neutral-500"
             >
-              <option value="" disabled selected>SELECT SUBJECT</option>
+              <option value="" disabled>SELECT SUBJECT</option>
               <option value="Recruitment">RECRUITMENT</option>
               <option value="Collaboration">COLLABORATION</option>
               <option value="Inquiry">GENERAL INQUIRY</option>
@@ -229,9 +247,9 @@ export const Contact: React.FC<{ config: SiteConfig; onNavigate: (page: PageView
           <button 
             type="submit" 
             disabled={isSubmitting}
-            className="w-full mt-12 bg-white text-black font-bold py-6 hover:bg-neutral-200 transition-colors uppercase tracking-widest text-lg"
+            className="w-full mt-12 bg-white text-black font-bold py-6 hover:bg-neutral-200 transition-colors uppercase tracking-widest text-lg disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isSubmitting ? 'SENDING...' : 'TRANSMIT'}
+            {isSubmitting ? 'TRANSMITTING...' : 'TRANSMIT'}
           </button>
         </form>
       </div>
