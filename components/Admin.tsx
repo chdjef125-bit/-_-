@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { Project, Member, ActivityLog, ArchiveItem, SiteConfig } from '../types';
-import { Trash2, Plus, Lock, LogOut, Layout, Users, Calendar, Archive, FileText, Settings, Upload, Image as ImageIcon, Link, Download, Save, AlertTriangle, Code, Globe, FileJson, RefreshCw, Database, CloudLightning, PenTool, Layers, Box, ArrowRight, X, Grid } from 'lucide-react';
+import { Trash2, Plus, Lock, LogOut, Layout, Users, Calendar, Archive, FileText, Settings, Upload, Image as ImageIcon, Link, Download, Save, AlertTriangle, Code, Globe, FileJson, RefreshCw, Database, CloudLightning, Grid, X } from 'lucide-react';
 import { DataService } from '../services/store';
 
 interface AdminProps {
@@ -541,51 +541,44 @@ export const Admin: React.FC<AdminProps> = ({
                  </div>
                </div>
 
-               {/* Process Section Images */}
-               <div className="space-y-6 md:col-span-2 border-b border-neutral-800 pb-8">
-                 <h4 className="text-jakdang-accent font-bold text-sm flex items-center gap-2">
-                   <Layers size={16} /> Process Section Images (Hover Effect)
-                 </h4>
-                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                   {[
-                     { key: 'processResearchImageUrl', label: 'Research', icon: PenTool },
-                     { key: 'processNarrativeImageUrl', label: 'Narrative', icon: Layers },
-                     { key: 'processMassingImageUrl', label: 'Massing', icon: Box },
-                     { key: 'processOutputImageUrl', label: 'Output', icon: ArrowRight },
-                   ].map((item) => (
-                     <div key={item.key}>
-                       <label className="block text-xs text-neutral-500 mb-2 flex items-center gap-1"><item.icon size={12}/> {item.label}</label>
-                       <div className="relative group">
-                         <input type="file" accept="image/*" onChange={handleConfigImageUpload(item.key as keyof SiteConfig)} className="hidden" id={`proc-img-${item.key}`} />
-                         <label htmlFor={`proc-img-${item.key}`} className="flex items-center justify-center w-full aspect-square border border-dashed border-neutral-700 hover:border-jakdang-accent cursor-pointer text-neutral-500 hover:text-white transition-colors bg-black overflow-hidden relative">
-                           {config[item.key as keyof SiteConfig] ? (
-                             <>
-                               <img src={config[item.key as keyof SiteConfig] as string} className="h-full w-full object-cover opacity-80" alt="Preview"/>
-                               <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity">
-                                 <Upload size={16} className="text-white"/>
-                               </div>
-                             </>
-                           ) : (
-                             <div className="flex flex-col items-center"><Upload size={16}/></div>
-                           )}
-                         </label>
-                       </div>
-                     </div>
-                   ))}
-                 </div>
-               </div>
+               {/* Process Section Images REMOVED */}
 
                {/* Text Configs */}
                <div className="space-y-4">
                  <h4 className="text-jakdang-accent font-bold text-sm border-b border-neutral-800 pb-2">About Page Text</h4>
                  <div>
+                   <label className="block text-xs text-neutral-500 mb-1">Manifesto Title (e.g. Conspire)</label>
+                   <input name="homeManifestoTitle" value={config.homeManifestoTitle || ''} onChange={handleConfigUpdate} className="w-full bg-black border border-neutral-700 px-3 py-2 text-white outline-none" />
+                 </div>
+                 {/* NEW: Manifesto Image Uploader */}
+                 <div>
+                   <label className="block text-xs text-neutral-500 mb-1">Manifesto Image (Sketch)</label>
+                   <div className="relative">
+                     <input type="file" accept="image/*" onChange={handleConfigImageUpload('homeManifestoImageUrl')} className="hidden" id="manifesto-img" />
+                     <label htmlFor="manifesto-img" className="flex items-center justify-center w-full h-32 border border-dashed border-neutral-700 hover:border-jakdang-accent cursor-pointer text-neutral-500 hover:text-white transition-colors bg-black overflow-hidden relative">
+                       {config.homeManifestoImageUrl ? (
+                         <>
+                           <img src={config.homeManifestoImageUrl} className="h-full w-full object-contain opacity-80" alt="Preview"/>
+                           <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 hover:opacity-100 transition-opacity">
+                             <Upload size={16} className="text-white"/>
+                           </div>
+                         </>
+                       ) : (
+                         <div className="flex flex-col items-center"><Upload size={20}/> <span className="text-xs mt-1">Upload Sketch</span></div>
+                       )}
+                     </label>
+                   </div>
+                   <div className="mt-2 flex items-center gap-2">
+                     <Link size={12} className="text-neutral-500" />
+                     <input placeholder="Or paste Image URL" name="homeManifestoImageUrl" value={config.homeManifestoImageUrl || ''} onChange={handleConfigUpdate} className="bg-transparent border-b border-neutral-700 text-xs w-full py-1 text-white outline-none focus:border-jakdang-accent" />
+                   </div>
+                 </div>
+                 
+                 <div>
                    <label className="block text-xs text-neutral-500 mb-1">Definition Text</label>
                    <textarea name="aboutDefinition" value={config.aboutDefinition} onChange={handleConfigUpdate} className="w-full bg-black border border-neutral-700 px-3 py-2 text-white outline-none h-24" />
                  </div>
-                 <div>
-                   <label className="block text-xs text-neutral-500 mb-1">Description Text</label>
-                   <textarea name="aboutDescription" value={config.aboutDescription} onChange={handleConfigUpdate} className="w-full bg-black border border-neutral-700 px-3 py-2 text-white outline-none h-24" />
-                 </div>
+                 {/* Description Text REMOVED */}
                </div>
 
                <div className="space-y-4">

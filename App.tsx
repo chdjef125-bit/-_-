@@ -9,20 +9,39 @@ import { DataService } from './services/store';
 
 // Splash Screen Component
 const SplashScreen: React.FC = () => {
+  const mainText = "작당모의";
+  const subText = "Architectural Student Club";
+
   return (
     <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black overflow-hidden">
-       {/* Background Grid */}
-       <div className="absolute inset-0 z-0 opacity-20 pointer-events-none">
-          <div className="absolute inset-0 bg-[linear-gradient(to_right,#333_1px,transparent_1px),linear-gradient(to_bottom,#333_1px,transparent_1px)] bg-[size:4rem_4rem]"></div>
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,black_100%)]"></div>
+       {/* Background Grid - Very Subtle */}
+       <div className="absolute inset-0 z-0 opacity-20 pointer-events-none perspective-[500px]">
+          <div className="absolute inset-[-50%] bg-[linear-gradient(to_right,#333_1px,transparent_1px),linear-gradient(to_bottom,#333_1px,transparent_1px)] bg-[size:3rem_3rem] [transform:perspective(500px)_rotateX(60deg)] animate-[gridMove_8s_linear_infinite]"></div>
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,black_70%)]"></div>
        </div>
 
-      <div className="relative p-10 flex flex-col items-center z-10">
-        <h1 className="text-6xl md:text-8xl font-serif font-bold text-white splash-text text-center tracking-tight">
-          작당모의
+      <div className="relative p-10 flex flex-col items-center z-10 text-center">
+        {/* Main Title - Cinematic Reveal */}
+        <h1 className="text-6xl md:text-8xl font-bold text-white tracking-tighter mb-4">
+          {mainText.split('').map((char, index) => (
+            <span 
+              key={index} 
+              className="inline-block animate-cinematic" 
+              style={{ animationDelay: `${index * 0.15}s` }} // Slow stagger
+            >
+              {char}
+            </span>
+          ))}
         </h1>
-        <p className="text-white/50 text-xs tracking-[0.5em] mt-6 uppercase text-center splash-fade" style={{ animationDelay: '0.5s' }}>
-          Jakdang Architectural Studio
+        
+        {/* Subtitle - Slow Fade */}
+        <div className="h-px w-12 bg-white/30 mb-4 animate-fade-slow" style={{ animationDelay: '0.8s' }}></div>
+        
+        <p 
+           className="text-white/60 text-xs md:text-sm font-mono uppercase tracking-[0.2em] animate-cinematic"
+           style={{ animationDelay: '1.0s' }}
+        >
+           {subText}
         </p>
       </div>
     </div>
@@ -70,13 +89,14 @@ const App: React.FC = () => {
     // Splash screen timer
     const timer = setTimeout(() => {
       setLoading(false);
-    }, 2500);
+    }, 3500); // Slightly longer for the slow animation
 
     return () => clearTimeout(timer);
   }, []);
 
   const handleNavigate = (page: PageView) => {
     setCurrentPage(page);
+    window.scrollTo(0, 0);
   };
 
   const renderPage = () => {

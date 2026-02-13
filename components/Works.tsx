@@ -16,14 +16,14 @@ export const Works: React.FC<WorksProps> = ({ projects }) => {
     <div className="bg-black min-h-screen">
       <div className="max-w-[1920px] mx-auto">
         
-        {/* Minimal Filter */}
-        <div className="px-6 md:px-12 mb-12 flex flex-wrap gap-8">
+        {/* Large Typographic Filter - Scaled up to match other pages headers */}
+        <div className="px-6 md:px-12 py-12 md:py-24 flex flex-wrap gap-x-6 md:gap-x-12 gap-y-2 items-baseline select-none">
           {['All', 'Academic', 'Competition', 'Team', 'Personal'].map((cat) => (
             <button
               key={cat}
               onClick={() => setFilter(cat as any)}
-              className={`text-sm md:text-base font-medium transition-colors ${
-                filter === cat ? 'text-white border-b border-white pb-1' : 'text-neutral-600 hover:text-white'
+              className={`text-4xl md:text-7xl font-bold tracking-tighter uppercase transition-all duration-300 leading-none ${
+                filter === cat ? 'text-white' : 'text-neutral-800 hover:text-neutral-500'
               }`}
             >
               {cat}

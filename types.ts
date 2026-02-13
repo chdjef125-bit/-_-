@@ -1,3 +1,4 @@
+
 export type PageView = 'home' | 'members' | 'works' | 'activity' | 'archive' | 'contact' | 'admin';
 
 export interface SiteConfig {
@@ -6,15 +7,11 @@ export interface SiteConfig {
   homeHeroDescription: string;
   homeHeroImageUrl: string; // Used as fallback or specific hero image if needed
   homeGridImages: string[]; // New: Array of images for the dense grid background
+  homeManifestoTitle?: string; // New: Editable title for the Manifesto section (default: Conspire)
+  homeManifestoImageUrl?: string; // New: Image for the Manifesto section (Sketch)
   aboutDefinition: string;
-  aboutDescription: string;
   contactRecruitText: string;
   contactCollabText: string;
-  // Process Section Images
-  processResearchImageUrl: string;
-  processNarrativeImageUrl: string;
-  processMassingImageUrl: string;
-  processOutputImageUrl: string;
 }
 
 export interface Project {

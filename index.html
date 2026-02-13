@@ -27,7 +27,7 @@
                 base: '#000000',    // Pure Black
                 panel: '#0a0a0a',   // Almost Black
                 border: '#1a1a1a',  // Very Subtle Border
-                accent: '#2563eb',  // Cobalt Blue
+                accent: '#ef4444',  // Red-500 (Matches Logo)
                 text: '#ffffff',    // White text
                 muted: '#666666'    // Darker gray text
               }
@@ -68,6 +68,40 @@
       .reveal.active {
         opacity: 1;
         transform: translateY(0);
+      }
+
+      /* Splash Screen Animations - Sophisticated & Cinematic */
+      @keyframes cinematicReveal {
+        0% { 
+          opacity: 0; 
+          transform: translateY(20px); 
+          filter: blur(10px); 
+        }
+        100% { 
+          opacity: 1; 
+          transform: translateY(0); 
+          filter: blur(0); 
+        }
+      }
+      
+      @keyframes slowFadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+
+      .animate-cinematic {
+        animation: cinematicReveal 1.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+        opacity: 0; /* Start hidden */
+      }
+
+      .animate-fade-slow {
+        animation: slowFadeIn 2s ease-out forwards;
+        opacity: 0;
+      }
+      
+      @keyframes gridMove {
+        0% { transform: perspective(500px) rotateX(60deg) translateY(0); }
+        100% { transform: perspective(500px) rotateX(60deg) translateY(40px); }
       }
     </style>
   <script type="importmap">

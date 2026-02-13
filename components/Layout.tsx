@@ -42,22 +42,23 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, onNavigat
           className="cursor-pointer pointer-events-auto hover:opacity-70 transition-opacity flex flex-col" 
           onClick={() => handleNav('home')}
         >
-          <div className="font-bold text-3xl tracking-tighter uppercase leading-none">
+          {/* Main Title - Subtle Red */}
+          <div className="font-bold text-3xl tracking-tighter uppercase leading-none text-red-500">
             Jakdang
           </div>
-          <div className="text-[0.6rem] font-bold tracking-[0.2em] text-jakdang-accent uppercase leading-none mt-2">
-            Architectural Studio
+          {/* Subtitle - Subtle Red */}
+          <div className="text-[0.6rem] font-bold tracking-[0.2em] text-red-500 uppercase leading-none mt-2">
+            Architectural Student Club
           </div>
         </div>
 
         {/* Menu Toggle - Pointer events re-enabled */}
         <button 
           onClick={() => setIsMenuOpen(!isMenuOpen)}
-          className="flex items-center gap-4 group pointer-events-auto pt-1"
+          className="flex items-center justify-center group pointer-events-auto pt-1"
+          aria-label={isMenuOpen ? 'Close Menu' : 'Open Menu'}
         >
-          <span className="text-sm font-bold tracking-widest uppercase hidden md:block group-hover:opacity-70 transition-opacity">
-            {isMenuOpen ? 'Close' : 'Menu'}
-          </span>
+          {/* Text label removed as requested */}
           <div className={`w-12 h-12 flex items-center justify-center border rounded-full transition-all duration-300 ${isMenuOpen ? 'bg-white text-black border-white' : 'border-white text-white hover:bg-white hover:text-black'}`}>
             {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
           </div>
@@ -107,7 +108,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, onNavigat
           <div>
             <h3 className="text-2xl font-bold text-white mb-2">JAKDANG</h3>
             <p className="text-sm max-w-md">
-              Architectural Design Collective<br/>
+              Architectural Student Club<br/>
               Busan, South Korea
             </p>
           </div>
