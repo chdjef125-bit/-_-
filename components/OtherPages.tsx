@@ -16,7 +16,9 @@ const MemberCard: React.FC<{ m: Member, gray?: boolean }> = ({ m, gray = false }
     <div className="border-t border-neutral-900 pt-4">
       <h4 className="text-xl font-bold text-white">{m.name}</h4>
       <p className="text-xs text-neutral-500 font-mono uppercase mb-2">{m.cohort} | {m.role}</p>
-      <p className="text-sm text-neutral-600 line-clamp-2">"{m.philosophy}"</p>
+      {m.philosophy && m.philosophy.trim() !== "" && (
+        <p className="text-sm text-neutral-600 line-clamp-2">"{m.philosophy}"</p>
+      )}
     </div>
   </div>
 );

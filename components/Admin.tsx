@@ -369,7 +369,7 @@ export const Admin: React.FC<AdminProps> = ({
                   </select>
                   <input placeholder="Cohort (e.g. 13th)" value={newMember.cohort} onChange={e => setNewMember({...newMember, cohort: e.target.value})} className="bg-black border border-neutral-700 text-white px-3 py-2 outline-none" />
                 </div>
-                <input placeholder="Philosophy (One liner)" value={newMember.philosophy} onChange={e => setNewMember({...newMember, philosophy: e.target.value})} className="w-full bg-black border border-neutral-700 px-3 py-2 text-white outline-none" />
+                <input placeholder="Philosophy (One liner) - Optional" value={newMember.philosophy} onChange={e => setNewMember({...newMember, philosophy: e.target.value})} className="w-full bg-black border border-neutral-700 px-3 py-2 text-white outline-none" />
                 <div>
                    <label className="block text-xs text-neutral-500 mb-1">Profile Image</label>
                    <div className="relative">
