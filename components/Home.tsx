@@ -35,40 +35,79 @@ const RevealSection: React.FC<{ children: React.ReactNode }> = ({ children }) =>
 export const Home: React.FC<HomeProps> = ({ featuredProjects, onNavigate, config }) => {
   // Use user config title or default to split layout
   const titleWords = config.homeHeroTitle ? config.homeHeroTitle.split(' ') : ["JAK", "DANG"];
+  
+  // Ensure we have images for the grid (fill with pattern if empty)
+  const gridImages = config.homeGridImages && config.homeGridImages.length > 0 
+    ? config.homeGridImages 
+    : Array(24).fill(config.homeHeroImageUrl); // Fallback to hero image repeated
 
   return (
-    <div className="bg-black w-full overflow-hidden">
+    <div className="bg-black w-full text-white">
       
-      {/* 1. HERO - MASSIVE TYPOGRAPHY */}
-      <section className="min-h-screen flex flex-col justify-center px-6 md:px-12 py-24 relative">
-        <div className="max-w-[1920px] mx-auto w-full">
-          <div className="mb-8">
-             <span className="text-xs font-bold tracking-widest text-jakdang-accent uppercase">Architectural Studio</span>
+      {/* 1. HERO - FULL SCREEN PHOTO GRID */}
+      <section className="h-screen w-full relative overflow-hidden flex flex-col justify-center bg-black">
+        
+        {/* --- DENSE IMAGE GRID BACKGROUND (User Requested) --- */}
+        <div className="absolute inset-0 z-0 grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 auto-rows-fr gap-[1px] bg-neutral-900 opacity-60">
+           {/* Duplicate images to fill screen if needed, slicing to keep performance reasonable */}
+           {[...gridImages, ...gridImages, ...gridImages].slice(0, 48).map((img, idx) => (
+             <div key={idx} className="relative w-full h-full overflow-hidden group">
+                <img 
+                  src={img} 
+                  alt="" 
+                  className="w-full h-full object-cover grayscale brightness-50 group-hover:grayscale-0 group-hover:brightness-100 transition-all duration-700 ease-out"
+                />
+             </div>
+           ))}
+        </div>
+
+        {/* --- ARCHITECTURAL OVERLAY --- */}
+        {/* Dark overlay to make text readable */}
+        <div className="absolute inset-0 z-1 bg-black/50 pointer-events-none"></div>
+
+        {/* Grid Pattern (Thin lines overlaying the photos) */}
+        <div className="absolute inset-0 z-1 opacity-20 pointer-events-none">
+          <div className="absolute inset-0 bg-[linear-gradient(to_right,#aaa_1px,transparent_1px),linear-gradient(to_bottom,#aaa_1px,transparent_1px)] bg-[size:4rem_4rem]"></div>
+        </div>
+
+        {/* --- CONTENT --- */}
+        <div className="max-w-[1920px] mx-auto w-full h-full px-6 md:px-12 flex flex-col justify-center relative z-10 pointer-events-none">
+          
+          {/* Main Title - Centered vertically */}
+          <div className="flex-grow flex flex-col justify-center">
+            <h1 className="text-[10vw] md:text-[8vw] leading-none font-bold tracking-tighter text-white select-none drop-shadow-2xl">
+              {titleWords.map((word, i) => (
+                <span key={i} className="block">{word}</span>
+              ))}
+            </h1>
           </div>
           
-          <h1 className="text-[15vw] leading-[0.8] font-bold tracking-tighter text-white mix-blend-difference select-none">
-            {titleWords.map((word, i) => (
-              <span key={i} className="block">{word}</span>
-            ))}
-          </h1>
-          
-          <div className="mt-12 max-w-2xl">
-            <p className="text-xl md:text-2xl text-white font-light leading-relaxed">
+          {/* Description - Bottom aligned */}
+          <div className="absolute bottom-12 left-6 md:left-12 max-w-2xl">
+            <p className="text-lg md:text-xl text-white font-light leading-relaxed opacity-90 drop-shadow-md">
               {config.homeHeroDescription}
             </p>
+          </div>
+          
+          {/* Scroll Indicator */}
+          <div className="absolute bottom-12 right-6 md:right-12 hidden md:flex flex-col items-center gap-2 opacity-50">
+             <span className="text-[10px] font-mono uppercase tracking-widest text-white">Scroll</span>
+             <div className="w-[1px] h-12 bg-white"></div>
           </div>
         </div>
       </section>
 
       {/* 2. MANIFESTO - Clean Split */}
-      <section className="border-t border-neutral-900">
+      <section className="border-t border-neutral-900 bg-black relative">
         <div className="grid grid-cols-1 md:grid-cols-2 max-w-[1920px] mx-auto">
-          <div className="p-8 md:p-24 border-b md:border-b-0 md:border-r border-neutral-900">
-             <h2 className="text-4xl font-bold mb-8">Conspire.</h2>
+          <div className="p-8 md:p-24 border-b md:border-b-0 md:border-r border-neutral-900 relative">
+             {/* Decorative Number */}
+             <span className="absolute top-8 left-8 text-xs font-mono text-neutral-700">01 / CONSPIRACY</span>
+             
+             <h2 className="text-4xl font-bold mb-8 mt-4">Conspire.</h2>
              <p className="text-neutral-400 text-lg leading-relaxed mb-8">
                {config.aboutDefinition}
              </p>
-             {/* Read Manifesto button removed as About page is deleted */}
           </div>
           <div className="grid grid-cols-2">
              {[
@@ -79,59 +118,32 @@ export const Home: React.FC<HomeProps> = ({ featuredProjects, onNavigate, config
              ].map((img, idx) => (
                <div key={idx} className="aspect-square relative group overflow-hidden border-b border-r border-neutral-900 last:border-r-0 md:odd:border-r">
                   <img src={img} className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500" />
+                  <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors"></div>
                </div>
              ))}
           </div>
         </div>
       </section>
 
-      {/* 3. WORKS - Clean Grid */}
-      <section className="border-t border-neutral-900">
-        <div className="max-w-[1920px] mx-auto">
-          <div className="p-6 md:px-12 md:py-8 border-b border-neutral-900 flex justify-between items-end">
-             <h2 className="text-6xl md:text-8xl font-bold tracking-tighter text-neutral-800">WORKS</h2>
-             <button onClick={() => onNavigate('works')} className="hidden md:block text-sm font-bold uppercase tracking-widest hover:text-jakdang-accent transition-colors">
-               View All Archive
-             </button>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3">
-            {featuredProjects.slice(0, 3).map((project, idx) => (
-              <div 
-                key={project.id} 
-                onClick={() => onNavigate('works')}
-                className="group relative aspect-[4/5] border-b border-neutral-900 md:border-r md:last:border-r-0 cursor-pointer overflow-hidden"
-              >
-                <img 
-                  src={project.imageUrl} 
-                  alt={project.title}
-                  className="w-full h-full object-cover grayscale brightness-75 group-hover:grayscale-0 group-hover:brightness-100 transition-all duration-700"
-                />
-                <div className="absolute inset-0 p-8 flex flex-col justify-end opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-gradient-to-t from-black/80 to-transparent">
-                  <span className="text-xs font-mono mb-2 text-jakdang-accent">{project.category}</span>
-                  <h3 className="text-2xl font-bold text-white">{project.title}</h3>
-                </div>
-              </div>
-            ))}
-          </div>
-          <div className="md:hidden p-6 text-center border-b border-neutral-900">
-             <button onClick={() => onNavigate('works')} className="text-sm font-bold uppercase tracking-widest">
-               View All Projects
-             </button>
-          </div>
-        </div>
-      </section>
+      {/* 3. WORKS SECTION REMOVED AS REQUESTED */}
 
       {/* 4. CTA - Simple */}
-      <section className="py-32 px-6 text-center">
+      <section className="py-32 px-6 text-center relative overflow-hidden bg-black border-t border-neutral-900">
+        {/* Background Grid for Footer Area too */}
+        <div className="absolute inset-0 z-0 opacity-10 pointer-events-none">
+             <div className="absolute inset-0 bg-[linear-gradient(to_right,#333_1px,transparent_1px),linear-gradient(to_bottom,#333_1px,transparent_1px)] bg-[size:2rem_2rem]"></div>
+        </div>
+        
         <RevealSection>
-          <h2 className="text-4xl md:text-6xl font-bold mb-8">Join the Conspiracy</h2>
-          <button 
-             onClick={() => onNavigate('contact')}
-             className="px-8 py-3 bg-white text-black font-bold hover:bg-neutral-200 transition-colors"
-          >
-            Contact Us
-          </button>
+          <div className="relative z-10">
+            <h2 className="text-4xl md:text-6xl font-bold mb-8">Join the Conspiracy</h2>
+            <button 
+               onClick={() => onNavigate('contact')}
+               className="px-8 py-3 bg-white text-black font-bold hover:bg-neutral-200 transition-colors"
+            >
+              Contact Us
+            </button>
+          </div>
         </RevealSection>
       </section>
 

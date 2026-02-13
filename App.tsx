@@ -10,8 +10,14 @@ import { DataService } from './services/store';
 // Splash Screen Component
 const SplashScreen: React.FC = () => {
   return (
-    <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black">
-      <div className="relative p-10 flex flex-col items-center">
+    <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black overflow-hidden">
+       {/* Background Grid */}
+       <div className="absolute inset-0 z-0 opacity-20 pointer-events-none">
+          <div className="absolute inset-0 bg-[linear-gradient(to_right,#333_1px,transparent_1px),linear-gradient(to_bottom,#333_1px,transparent_1px)] bg-[size:4rem_4rem]"></div>
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,black_100%)]"></div>
+       </div>
+
+      <div className="relative p-10 flex flex-col items-center z-10">
         <h1 className="text-6xl md:text-8xl font-serif font-bold text-white splash-text text-center tracking-tight">
           작당모의
         </h1>

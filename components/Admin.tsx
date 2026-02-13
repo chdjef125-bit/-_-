@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { Project, Member, ActivityLog, ArchiveItem, SiteConfig } from '../types';
-import { Trash2, Plus, Lock, LogOut, Layout, Users, Calendar, Archive, FileText, Settings, Upload, Image as ImageIcon, Link, Download, Save, AlertTriangle, Code, Globe, FileJson, RefreshCw, Database, CloudLightning, PenTool, Layers, Box, ArrowRight } from 'lucide-react';
+import { Trash2, Plus, Lock, LogOut, Layout, Users, Calendar, Archive, FileText, Settings, Upload, Image as ImageIcon, Link, Download, Save, AlertTriangle, Code, Globe, FileJson, RefreshCw, Database, CloudLightning, PenTool, Layers, Box, ArrowRight, X, Grid } from 'lucide-react';
 import { DataService } from '../services/store';
 
 interface AdminProps {
@@ -183,6 +183,25 @@ export const Admin: React.FC<AdminProps> = ({
       setConfig(newConfig);
       safeSave(DataService.saveSiteConfig, newConfig);
     });
+  };
+
+  // Home Grid Image Handling
+  const handleAddGridImage = (e: React.ChangeEvent<HTMLInputElement>) => {
+    handleImageUpload(e, (url) => {
+      const currentImages = config.homeGridImages || [];
+      const newConfig = { ...config, homeGridImages: [url, ...currentImages] };
+      setConfig(newConfig);
+      safeSave(DataService.saveSiteConfig, newConfig);
+    });
+  };
+
+  const removeGridImage = (index: number) => {
+    const currentImages = config.homeGridImages || [];
+    const newImages = [...currentImages];
+    newImages.splice(index, 1);
+    const newConfig = { ...config, homeGridImages: newImages };
+    setConfig(newConfig);
+    safeSave(DataService.saveSiteConfig, newConfig);
   };
 
   // --- SYSTEM FUNCTIONS ---
@@ -460,45 +479,52 @@ export const Admin: React.FC<AdminProps> = ({
              </div>
              
              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-               {/* Main Hero Section */}
+               
+               {/* 1. HOME GRID GALLERY MANAGER */}
                <div className="space-y-6 md:col-span-2 border-b border-neutral-800 pb-8">
                  <h4 className="text-jakdang-accent font-bold text-sm flex items-center gap-2">
-                   <ImageIcon size={16} /> Home Hero Main Photo
+                   <Grid size={16} /> Home Grid Gallery (Dense Photo Wall)
+                 </h4>
+                 <div className="bg-black/50 p-4 border border-neutral-800">
+                    <p className="text-xs text-neutral-500 mb-4">
+                      These images will be displayed in a dense grid pattern on the Home page background. 
+                      Add multiple images to create a rich wall of work.
+                    </p>
+                    
+                    {/* Image List */}
+                    <div className="grid grid-cols-4 md:grid-cols-8 gap-2 mb-4">
+                      {config.homeGridImages && config.homeGridImages.map((img, idx) => (
+                        <div key={idx} className="relative group aspect-square">
+                           <img src={img} className="w-full h-full object-cover border border-neutral-800" />
+                           <button 
+                             onClick={() => removeGridImage(idx)}
+                             className="absolute inset-0 bg-red-900/80 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                           >
+                             <Trash2 size={16} className="text-white" />
+                           </button>
+                        </div>
+                      ))}
+                      {/* Add Button */}
+                      <div className="aspect-square relative">
+                        <input type="file" accept="image/*" onChange={handleAddGridImage} className="hidden" id="grid-add" />
+                        <label htmlFor="grid-add" className="flex flex-col items-center justify-center w-full h-full border border-dashed border-neutral-700 hover:border-jakdang-accent cursor-pointer text-neutral-500 hover:text-white transition-colors bg-black">
+                          <Plus size={20} />
+                          <span className="text-[10px] mt-1">Add</span>
+                        </label>
+                      </div>
+                    </div>
+                 </div>
+               </div>
+
+               {/* Main Hero Section Text */}
+               <div className="space-y-6 md:col-span-2 border-b border-neutral-800 pb-8">
+                 <h4 className="text-jakdang-accent font-bold text-sm flex items-center gap-2">
+                   <FileText size={16} /> Home Hero Text
                  </h4>
                  
                  <div className="grid md:grid-cols-2 gap-8 items-start">
-                   {/* Image Uploader */}
-                   <div>
-                     <label className="block text-xs text-neutral-500 mb-2">Background Image</label>
-                     <div className="relative group">
-                       <input type="file" accept="image/*" onChange={handleHeroImageUpload} className="hidden" id="hero-img" />
-                       <label htmlFor="hero-img" className="flex items-center justify-center w-full aspect-video border border-dashed border-neutral-700 hover:border-jakdang-accent cursor-pointer text-neutral-500 hover:text-white transition-colors bg-black overflow-hidden relative">
-                         {config.homeHeroImageUrl ? (
-                           <>
-                             <img src={config.homeHeroImageUrl} className="h-full w-full object-cover opacity-80" alt="Preview"/>
-                             <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity">
-                               <span className="flex items-center gap-2 text-sm font-bold text-white"><Upload size={16}/> Change Image</span>
-                             </div>
-                           </>
-                         ) : (
-                           <div className="flex flex-col items-center gap-2"><Upload size={24}/> <span className="text-xs">Upload Hero Image</span></div>
-                         )}
-                       </label>
-                     </div>
-                     <div className="mt-2 flex items-center gap-2">
-                       <Link size={12} className="text-neutral-500" />
-                       <input 
-                          name="homeHeroImageUrl"
-                          placeholder="Or paste Image URL directly" 
-                          value={config.homeHeroImageUrl} 
-                          onChange={handleConfigUpdate}
-                          className="bg-transparent border-b border-neutral-700 text-xs w-full py-1 text-white outline-none focus:border-jakdang-accent"
-                       />
-                     </div>
-                   </div>
-
                    {/* Hero Text */}
-                   <div className="space-y-4">
+                   <div className="space-y-4 w-full">
                      <div>
                        <label className="block text-xs text-neutral-500 mb-1">Hero Title</label>
                        <input name="homeHeroTitle" value={config.homeHeroTitle} onChange={handleConfigUpdate} className="w-full bg-black border border-neutral-700 px-3 py-2 text-white outline-none" />

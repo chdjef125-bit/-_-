@@ -32,21 +32,28 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, onNavigat
   return (
     <div className="min-h-screen flex flex-col font-sans text-white bg-black selection:bg-white selection:text-black">
       
-      {/* Header - Absolute & Minimal with Blend Mode for visibility over images */}
-      {/* Changed from 'fixed' to 'absolute' to stop it from following scroll */}
-      <header className="absolute top-0 left-0 w-full z-50 px-6 md:px-12 py-8 flex justify-between items-center mix-blend-difference text-white pointer-events-none">
+      {/* Header */}
+      {/* Dynamic positioning: 'fixed' when menu is open to keep close button visible/accessible, 'absolute' otherwise */}
+      <header 
+        className={`${isMenuOpen ? 'fixed' : 'absolute'} top-0 left-0 w-full z-50 px-6 md:px-12 py-8 flex justify-between items-start mix-blend-difference text-white pointer-events-none transition-all duration-300`}
+      >
         {/* Logo - Pointer events re-enabled */}
         <div 
-          className="cursor-pointer font-bold text-3xl tracking-tighter uppercase pointer-events-auto hover:opacity-70 transition-opacity" 
+          className="cursor-pointer pointer-events-auto hover:opacity-70 transition-opacity flex flex-col" 
           onClick={() => handleNav('home')}
         >
-          Jakdang
+          <div className="font-bold text-3xl tracking-tighter uppercase leading-none">
+            Jakdang
+          </div>
+          <div className="text-[0.6rem] font-bold tracking-[0.2em] text-jakdang-accent uppercase leading-none mt-2">
+            Architectural Studio
+          </div>
         </div>
 
         {/* Menu Toggle - Pointer events re-enabled */}
         <button 
           onClick={() => setIsMenuOpen(!isMenuOpen)}
-          className="flex items-center gap-4 group pointer-events-auto"
+          className="flex items-center gap-4 group pointer-events-auto pt-1"
         >
           <span className="text-sm font-bold tracking-widest uppercase hidden md:block group-hover:opacity-70 transition-opacity">
             {isMenuOpen ? 'Close' : 'Menu'}
@@ -57,18 +64,18 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, onNavigat
         </button>
       </header>
 
-      {/* Full Screen Menu Overlay */}
+      {/* Full Screen Menu Overlay - Fitted for 100vh */}
       <div 
-        className={`fixed inset-0 bg-black z-40 flex flex-col justify-center items-center transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] ${
+        className={`fixed inset-0 bg-black z-40 flex flex-col justify-center items-center transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] overflow-hidden ${
           isMenuOpen ? 'opacity-100 visible' : 'opacity-0 invisible pointer-events-none'
         }`}
       >
-        <nav className="flex flex-col space-y-4 md:space-y-6 text-center">
+        <nav className="flex flex-col space-y-2 md:space-y-4 text-center justify-center h-full max-h-screen pt-20 pb-10">
           {navItems.map((item, idx) => (
             <button
               key={item.value}
               onClick={() => handleNav(item.value)}
-              className={`text-5xl md:text-8xl font-bold tracking-tighter uppercase transition-transform duration-500 hover:text-jakdang-accent ${
+              className={`text-4xl md:text-7xl font-bold tracking-tighter uppercase transition-transform duration-500 hover:text-jakdang-accent ${
                 isMenuOpen ? 'translate-y-0 opacity-100' : 'translate-y-12 opacity-0'
               } ${currentPage === item.value ? 'text-white' : 'text-neutral-700 hover:text-white'}`}
               style={{ transitionDelay: `${idx * 50}ms` }}
@@ -79,7 +86,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, onNavigat
           
           <button 
              onClick={() => handleNav('admin')}
-             className={`mt-12 text-sm font-mono text-neutral-500 hover:text-white uppercase tracking-widest transition-all duration-500 ${
+             className={`mt-8 text-xs font-mono text-neutral-500 hover:text-white uppercase tracking-widest transition-all duration-500 ${
                 isMenuOpen ? 'translate-y-0 opacity-100' : 'translate-y-12 opacity-0'
              }`}
              style={{ transitionDelay: '400ms' }}

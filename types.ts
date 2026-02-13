@@ -1,12 +1,11 @@
-
-
 export type PageView = 'home' | 'members' | 'works' | 'activity' | 'archive' | 'contact' | 'admin';
 
 export interface SiteConfig {
   homeHeroTitle: string;
   homeHeroSubtitle: string;
   homeHeroDescription: string;
-  homeHeroImageUrl: string;
+  homeHeroImageUrl: string; // Used as fallback or specific hero image if needed
+  homeGridImages: string[]; // New: Array of images for the dense grid background
   aboutDefinition: string;
   aboutDescription: string;
   contactRecruitText: string;
