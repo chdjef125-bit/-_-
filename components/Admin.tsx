@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { Project, Member, ActivityLog, ArchiveItem, SiteConfig } from '../types';
-import { Trash2, Plus, Lock, LogOut, Layout, Users, Calendar, Archive, FileText, Settings, Upload, Image as ImageIcon, Link, Download, Save, AlertTriangle, Code, Globe, FileJson, RefreshCw, Database, CloudLightning } from 'lucide-react';
+import { Trash2, Plus, Lock, LogOut, Layout, Users, Calendar, Archive, FileText, Settings, Upload, Image as ImageIcon, Link, Download, Save, AlertTriangle, Code, Globe, FileJson, RefreshCw, Database, CloudLightning, PenTool, Layers, Box, ArrowRight } from 'lucide-react';
 import { DataService } from '../services/store';
 
 interface AdminProps {
@@ -54,12 +54,12 @@ export const Admin: React.FC<AdminProps> = ({
 
   /* --- HANDLERS --- */
 
-  // Optimized Image Uploader with resizing
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, setter: (url: string) => void) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        alert("File is too large (>5MB). Please pick a smaller image.");
+      // High Quality Limits
+      if (file.size > 20 * 1024 * 1024) {
+        alert("File is too large (>20MB). Please pick a smaller image.");
         return;
       }
 
@@ -71,7 +71,8 @@ export const Admin: React.FC<AdminProps> = ({
           let width = img.width;
           let height = img.height;
           
-          const MAX_WIDTH = 1200;
+          // High Res Width
+          const MAX_WIDTH = 2560;
           if (width > MAX_WIDTH) {
             height = (MAX_WIDTH / width) * height;
             width = MAX_WIDTH;
@@ -82,7 +83,8 @@ export const Admin: React.FC<AdminProps> = ({
           const ctx = canvas.getContext('2d');
           ctx?.drawImage(img, 0, 0, width, height);
 
-          const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+          // High Quality Jpeg
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.90);
           setter(dataUrl);
         };
         img.src = event.target?.result as string;
@@ -174,6 +176,15 @@ export const Admin: React.FC<AdminProps> = ({
     });
   };
 
+  // Generic Image Uploader for Config properties
+  const handleConfigImageUpload = (propertyName: keyof SiteConfig) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    handleImageUpload(e, (url) => {
+      const newConfig = { ...config, [propertyName]: url };
+      setConfig(newConfig);
+      safeSave(DataService.saveSiteConfig, newConfig);
+    });
+  };
+
   // --- SYSTEM FUNCTIONS ---
 
   const handleMigrateToCloud = async () => {
@@ -197,8 +208,8 @@ export const Admin: React.FC<AdminProps> = ({
 
   if (!isAuthenticated) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh]">
-        <div className="w-full max-w-md p-8 bg-neutral-900 border border-neutral-800">
+      <div className="flex flex-col items-center justify-center min-h-[60vh] bg-black">
+        <div className="w-full max-w-md p-8 bg-neutral-900 border border-neutral-800 shadow-xl">
           <div className="text-center mb-8">
             <Lock className="mx-auto text-jakdang-accent mb-4" size={48} />
             <h2 className="text-xl font-bold text-white">Admin Access</h2>
@@ -208,11 +219,11 @@ export const Admin: React.FC<AdminProps> = ({
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-black border border-neutral-800 text-white px-4 py-3 focus:border-jakdang-accent outline-none text-center tracking-widest"
+              className="w-full bg-black border border-neutral-700 text-white px-4 py-3 focus:border-jakdang-accent outline-none text-center tracking-widest"
               placeholder="PIN CODE"
               autoFocus
             />
-            <button type="submit" className="w-full bg-white text-black font-bold py-3 hover:bg-jakdang-accent hover:text-white transition-colors">
+            <button type="submit" className="w-full bg-white text-black font-bold py-3 hover:bg-jakdang-accent transition-colors">
               ENTER
             </button>
           </form>
@@ -222,7 +233,7 @@ export const Admin: React.FC<AdminProps> = ({
   }
 
   return (
-    <div className="space-y-8 relative">
+    <div className="space-y-8 relative bg-black min-h-screen p-4 md:p-0">
        {/* Global Saving Indicator */}
       {isSaving && (
         <div className="fixed top-4 right-4 z-[100] bg-jakdang-accent text-white px-4 py-2 rounded shadow-lg flex items-center gap-2 animate-pulse">
@@ -236,7 +247,7 @@ export const Admin: React.FC<AdminProps> = ({
           <div className="flex items-center gap-2">
              <p className="font-mono text-neutral-500 text-sm">System Status:</p>
              {DataService.isConfigured ? (
-               <span className="text-xs bg-green-900 text-green-300 px-2 py-0.5 rounded flex items-center gap-1"><CloudLightning size={12}/> Dynamic Mode (Firebase)</span>
+               <span className="text-xs bg-green-900/30 text-green-400 px-2 py-0.5 rounded flex items-center gap-1"><CloudLightning size={12}/> Dynamic Mode (Firebase)</span>
              ) : (
                <span className="text-xs bg-neutral-800 text-neutral-400 px-2 py-0.5 rounded flex items-center gap-1"><Database size={12}/> Static Mode (Local Only)</span>
              )}
@@ -255,14 +266,13 @@ export const Admin: React.FC<AdminProps> = ({
           { id: 'members', icon: Users, label: 'Members' },
           { id: 'activities', icon: Calendar, label: 'Activities' },
           { id: 'archive', icon: Archive, label: 'Archive' },
-          // Process tab removed
           { id: 'system', icon: Database, label: 'Database' },
         ].map(tab => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id as TabType)}
             className={`flex items-center gap-2 px-6 py-3 text-sm font-medium transition-colors ${
-              activeTab === tab.id ? 'text-jakdang-accent border-b-2 border-jakdang-accent' : 'text-neutral-500 hover:text-white'
+              activeTab === tab.id ? 'text-jakdang-accent border-b-2 border-jakdang-accent bg-neutral-900' : 'text-neutral-500 hover:text-white hover:bg-neutral-900'
             }`}
           >
             <tab.icon size={16} /> {tab.label}
@@ -272,12 +282,12 @@ export const Admin: React.FC<AdminProps> = ({
 
       {/* Deployment/DB Banner */}
       {!DataService.isConfigured && activeTab !== 'system' && (
-        <div className="bg-neutral-900 border-l-4 border-yellow-600 p-4 flex justify-between items-center">
-          <div className="text-sm text-neutral-400">
-            <strong className="text-white block mb-1">⚠️ Running in Static Mode</strong>
+        <div className="bg-yellow-900/10 border-l-4 border-yellow-700 p-4 flex justify-between items-center shadow-sm">
+          <div className="text-sm text-yellow-500">
+            <strong className="block mb-1">⚠️ Running in Static Mode</strong>
             Changes are only visible on this device. To enable global updates, connect a database.
           </div>
-          <button onClick={() => setActiveTab('system')} className="text-xs bg-yellow-900/50 hover:bg-yellow-900 text-yellow-200 px-3 py-2 transition-colors uppercase font-bold border border-yellow-800">
+          <button onClick={() => setActiveTab('system')} className="text-xs bg-yellow-900/20 hover:bg-yellow-900/40 text-yellow-400 px-3 py-2 transition-colors uppercase font-bold border border-yellow-800">
             Setup Database
           </button>
         </div>
@@ -285,48 +295,40 @@ export const Admin: React.FC<AdminProps> = ({
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
-        {/* === PROJECTS TAB === */}
+        {/* Projects Tab */}
         {activeTab === 'projects' && (
           <>
-            <div className="lg:col-span-1 bg-neutral-900/50 p-6 border border-neutral-800 h-fit">
+            <div className="lg:col-span-1 bg-neutral-900 p-6 border border-neutral-800 h-fit shadow-sm">
               <h3 className="text-sm font-bold text-white mb-4 uppercase tracking-wider flex items-center gap-2"><Plus size={16}/> New Project</h3>
               <form onSubmit={handleAddProject} className="space-y-4">
-                <input placeholder="Title" value={newProject.title} onChange={e => setNewProject({...newProject, title: e.target.value})} className="w-full bg-black border border-neutral-800 px-3 py-2 text-white outline-none focus:border-jakdang-accent" required />
+                <input placeholder="Title" value={newProject.title} onChange={e => setNewProject({...newProject, title: e.target.value})} className="w-full bg-black border border-neutral-700 px-3 py-2 text-white outline-none focus:border-jakdang-accent" required />
                 <div className="grid grid-cols-2 gap-2">
-                  <select value={newProject.category} onChange={e => setNewProject({...newProject, category: e.target.value as any})} className="bg-black border border-neutral-800 text-white px-3 py-2 outline-none">
+                  <select value={newProject.category} onChange={e => setNewProject({...newProject, category: e.target.value as any})} className="bg-black border border-neutral-700 text-white px-3 py-2 outline-none">
                     <option value="Academic">Academic</option><option value="Competition">Competition</option><option value="Team">Team</option><option value="Personal">Personal</option>
                   </select>
-                  <input placeholder="Year" value={newProject.year} onChange={e => setNewProject({...newProject, year: e.target.value})} className="bg-black border border-neutral-800 text-white px-3 py-2 outline-none" />
+                  <input placeholder="Year" value={newProject.year} onChange={e => setNewProject({...newProject, year: e.target.value})} className="bg-black border border-neutral-700 text-white px-3 py-2 outline-none" />
                 </div>
-                <input placeholder="Author" value={newProject.author} onChange={e => setNewProject({...newProject, author: e.target.value})} className="w-full bg-black border border-neutral-800 px-3 py-2 text-white outline-none" required />
-                <textarea placeholder="Description" value={newProject.description} onChange={e => setNewProject({...newProject, description: e.target.value})} className="w-full bg-black border border-neutral-800 px-3 py-2 text-white outline-none h-24" required />
-                
-                {/* Image Upload */}
+                <input placeholder="Author" value={newProject.author} onChange={e => setNewProject({...newProject, author: e.target.value})} className="w-full bg-black border border-neutral-700 px-3 py-2 text-white outline-none" required />
+                <textarea placeholder="Description" value={newProject.description} onChange={e => setNewProject({...newProject, description: e.target.value})} className="w-full bg-black border border-neutral-700 px-3 py-2 text-white outline-none h-24" required />
                 <div>
                    <label className="block text-xs text-neutral-500 mb-1">Cover Image</label>
                    <div className="relative">
                      <input type="file" accept="image/*" onChange={e => handleImageUpload(e, url => setNewProject({...newProject, imageUrl: url}))} className="hidden" id="proj-img" />
-                     <label htmlFor="proj-img" className="flex items-center justify-center w-full h-24 border border-dashed border-neutral-700 hover:border-jakdang-accent cursor-pointer text-neutral-500 hover:text-white transition-colors">
-                       {newProject.imageUrl ? <img src={newProject.imageUrl} className="h-full w-full object-cover" alt="Preview"/> : <div className="flex flex-col items-center"><Upload size={20}/> <span className="text-xs mt-1">Upload Image (Auto-resized)</span></div>}
+                     <label htmlFor="proj-img" className="flex items-center justify-center w-full h-24 border border-dashed border-neutral-700 hover:border-jakdang-accent cursor-pointer text-neutral-500 hover:text-white transition-colors bg-black">
+                       {newProject.imageUrl ? <img src={newProject.imageUrl} className="h-full w-full object-cover" alt="Preview"/> : <div className="flex flex-col items-center"><Upload size={20}/> <span className="text-xs mt-1">Upload Image (High Quality)</span></div>}
                      </label>
                    </div>
                    <div className="mt-2 flex items-center gap-2">
                      <Link size={12} className="text-neutral-500" />
-                     <input 
-                        placeholder="Or paste Image URL" 
-                        value={newProject.imageUrl} 
-                        onChange={e => setNewProject({...newProject, imageUrl: e.target.value})}
-                        className="bg-transparent border-b border-neutral-800 text-xs w-full py-1 text-white outline-none focus:border-jakdang-accent"
-                     />
+                     <input placeholder="Or paste Image URL" value={newProject.imageUrl} onChange={e => setNewProject({...newProject, imageUrl: e.target.value})} className="bg-transparent border-b border-neutral-700 text-xs w-full py-1 text-white outline-none focus:border-jakdang-accent" />
                    </div>
                 </div>
-
-                <button type="submit" className="w-full bg-white text-black font-bold py-2 hover:bg-jakdang-accent hover:text-white transition-colors">ADD TO DATABASE</button>
+                <button type="submit" className="w-full bg-white text-black font-bold py-2 hover:bg-jakdang-accent hover:text-white transition-colors shadow-lg">ADD TO DATABASE</button>
               </form>
             </div>
             <div className="lg:col-span-2 space-y-2">
               {projects.map(p => (
-                <div key={p.id} className="flex justify-between items-center p-4 border border-neutral-800 bg-neutral-900">
+                <div key={p.id} className="flex justify-between items-center p-4 border border-neutral-800 bg-neutral-900 hover:shadow-md transition-shadow">
                   <div><h4 className="font-bold text-white">{p.title}</h4><p className="text-xs text-neutral-500">{p.year} | {p.category}</p></div>
                   <button onClick={() => deleteProject(p.id)} className="text-neutral-600 hover:text-red-500"><Trash2 size={18}/></button>
                 </div>
@@ -334,42 +336,40 @@ export const Admin: React.FC<AdminProps> = ({
             </div>
           </>
         )}
-
-        {/* === MEMBERS TAB === */}
+        
+        {/* Members Tab */}
         {activeTab === 'members' && (
           <>
-            <div className="lg:col-span-1 bg-neutral-900/50 p-6 border border-neutral-800 h-fit">
+            <div className="lg:col-span-1 bg-neutral-900 p-6 border border-neutral-800 h-fit shadow-sm">
               <h3 className="text-sm font-bold text-white mb-4 uppercase tracking-wider flex items-center gap-2"><Plus size={16}/> New Member</h3>
               <form onSubmit={handleAddMember} className="space-y-4">
-                <input placeholder="Name" value={newMember.name} onChange={e => setNewMember({...newMember, name: e.target.value})} className="w-full bg-black border border-neutral-800 px-3 py-2 text-white outline-none focus:border-jakdang-accent" required />
+                <input placeholder="Name" value={newMember.name} onChange={e => setNewMember({...newMember, name: e.target.value})} className="w-full bg-black border border-neutral-700 px-3 py-2 text-white outline-none focus:border-jakdang-accent" required />
                 <div className="grid grid-cols-2 gap-2">
-                  <select value={newMember.role} onChange={e => setNewMember({...newMember, role: e.target.value as any})} className="bg-black border border-neutral-800 text-white px-3 py-2 outline-none">
+                  <select value={newMember.role} onChange={e => setNewMember({...newMember, role: e.target.value as any})} className="bg-black border border-neutral-700 text-white px-3 py-2 outline-none">
                     <option value="Leadership">Leadership</option><option value="Member">Member</option><option value="Alumni">Alumni</option>
                   </select>
-                  <input placeholder="Cohort (e.g. 13th)" value={newMember.cohort} onChange={e => setNewMember({...newMember, cohort: e.target.value})} className="bg-black border border-neutral-800 text-white px-3 py-2 outline-none" />
+                  <input placeholder="Cohort (e.g. 13th)" value={newMember.cohort} onChange={e => setNewMember({...newMember, cohort: e.target.value})} className="bg-black border border-neutral-700 text-white px-3 py-2 outline-none" />
                 </div>
-                <input placeholder="Philosophy (One liner)" value={newMember.philosophy} onChange={e => setNewMember({...newMember, philosophy: e.target.value})} className="w-full bg-black border border-neutral-800 px-3 py-2 text-white outline-none" />
-                
+                <input placeholder="Philosophy (One liner)" value={newMember.philosophy} onChange={e => setNewMember({...newMember, philosophy: e.target.value})} className="w-full bg-black border border-neutral-700 px-3 py-2 text-white outline-none" />
                 <div>
                    <label className="block text-xs text-neutral-500 mb-1">Profile Image</label>
                    <div className="relative">
                      <input type="file" accept="image/*" onChange={e => handleImageUpload(e, url => setNewMember({...newMember, imageUrl: url}))} className="hidden" id="mem-img" />
-                     <label htmlFor="mem-img" className="flex items-center justify-center w-full h-24 border border-dashed border-neutral-700 hover:border-jakdang-accent cursor-pointer text-neutral-500 hover:text-white transition-colors">
-                       {newMember.imageUrl ? <img src={newMember.imageUrl} className="h-full w-full object-cover" alt="Preview"/> : <div className="flex flex-col items-center"><Upload size={20}/> <span className="text-xs mt-1">Upload Image (Auto-resized)</span></div>}
+                     <label htmlFor="mem-img" className="flex items-center justify-center w-full h-24 border border-dashed border-neutral-700 hover:border-jakdang-accent cursor-pointer text-neutral-500 hover:text-white transition-colors bg-black">
+                       {newMember.imageUrl ? <img src={newMember.imageUrl} className="h-full w-full object-cover" alt="Preview"/> : <div className="flex flex-col items-center"><Upload size={20}/> <span className="text-xs mt-1">Upload Image (High Quality)</span></div>}
                      </label>
                    </div>
                    <div className="mt-2 flex items-center gap-2">
                      <Link size={12} className="text-neutral-500" />
-                     <input placeholder="Or paste Image URL" value={newMember.imageUrl} onChange={e => setNewMember({...newMember, imageUrl: e.target.value})} className="bg-transparent border-b border-neutral-800 text-xs w-full py-1 text-white outline-none focus:border-jakdang-accent" />
+                     <input placeholder="Or paste Image URL" value={newMember.imageUrl} onChange={e => setNewMember({...newMember, imageUrl: e.target.value})} className="bg-transparent border-b border-neutral-700 text-xs w-full py-1 text-white outline-none focus:border-jakdang-accent" />
                    </div>
                 </div>
-
-                <button type="submit" className="w-full bg-white text-black font-bold py-2 hover:bg-jakdang-accent hover:text-white transition-colors">ADD TO DATABASE</button>
+                <button type="submit" className="w-full bg-white text-black font-bold py-2 hover:bg-jakdang-accent hover:text-white transition-colors shadow-lg">ADD TO DATABASE</button>
               </form>
             </div>
             <div className="lg:col-span-2 space-y-2">
               {members.map(m => (
-                <div key={m.id} className="flex justify-between items-center p-4 border border-neutral-800 bg-neutral-900">
+                <div key={m.id} className="flex justify-between items-center p-4 border border-neutral-800 bg-neutral-900 hover:shadow-md transition-shadow">
                   <div className="flex items-center gap-4">
                      {m.imageUrl && <img src={m.imageUrl} alt="" className="w-10 h-10 object-cover rounded-full bg-neutral-800" />}
                      <div><h4 className="font-bold text-white">{m.name}</h4><p className="text-xs text-neutral-500">{m.role} | {m.cohort}</p></div>
@@ -381,41 +381,39 @@ export const Admin: React.FC<AdminProps> = ({
           </>
         )}
 
-        {/* === ACTIVITIES TAB === */}
+        {/* Activities Tab */}
         {activeTab === 'activities' && (
           <>
-            <div className="lg:col-span-1 bg-neutral-900/50 p-6 border border-neutral-800 h-fit">
+            <div className="lg:col-span-1 bg-neutral-900 p-6 border border-neutral-800 h-fit shadow-sm">
               <h3 className="text-sm font-bold text-white mb-4 uppercase tracking-wider flex items-center gap-2"><Plus size={16}/> New Activity</h3>
               <form onSubmit={handleAddActivity} className="space-y-4">
-                <input placeholder="Title" value={newActivity.title} onChange={e => setNewActivity({...newActivity, title: e.target.value})} className="w-full bg-black border border-neutral-800 px-3 py-2 text-white outline-none focus:border-jakdang-accent" required />
+                <input placeholder="Title" value={newActivity.title} onChange={e => setNewActivity({...newActivity, title: e.target.value})} className="w-full bg-black border border-neutral-700 px-3 py-2 text-white outline-none focus:border-jakdang-accent" required />
                 <div className="grid grid-cols-2 gap-2">
-                  <input placeholder="Date (YYYY.MM)" value={newActivity.date} onChange={e => setNewActivity({...newActivity, date: e.target.value})} className="bg-black border border-neutral-800 text-white px-3 py-2 outline-none" />
-                  <select value={newActivity.type} onChange={e => setNewActivity({...newActivity, type: e.target.value as any})} className="bg-black border border-neutral-800 text-white px-3 py-2 outline-none">
+                  <input placeholder="Date (YYYY.MM)" value={newActivity.date} onChange={e => setNewActivity({...newActivity, date: e.target.value})} className="bg-black border border-neutral-700 text-white px-3 py-2 outline-none" />
+                  <select value={newActivity.type} onChange={e => setNewActivity({...newActivity, type: e.target.value as any})} className="bg-black border border-neutral-700 text-white px-3 py-2 outline-none">
                     <option value="Workshop">Workshop</option><option value="Exhibition">Exhibition</option><option value="MT">MT</option><option value="Study">Study</option><option value="Field Trip">Field Trip</option>
                   </select>
                 </div>
-                <textarea placeholder="Description" value={newActivity.description} onChange={e => setNewActivity({...newActivity, description: e.target.value})} className="w-full bg-black border border-neutral-800 px-3 py-2 text-white outline-none h-20" />
-                
+                <textarea placeholder="Description" value={newActivity.description} onChange={e => setNewActivity({...newActivity, description: e.target.value})} className="w-full bg-black border border-neutral-700 px-3 py-2 text-white outline-none h-20" />
                 <div>
                    <label className="block text-xs text-neutral-500 mb-1">Activity Image</label>
                    <div className="relative">
                      <input type="file" accept="image/*" onChange={e => handleImageUpload(e, url => setNewActivity({...newActivity, imageUrl: url}))} className="hidden" id="act-img" />
-                     <label htmlFor="act-img" className="flex items-center justify-center w-full h-24 border border-dashed border-neutral-700 hover:border-jakdang-accent cursor-pointer text-neutral-500 hover:text-white transition-colors">
-                       {newActivity.imageUrl ? <img src={newActivity.imageUrl} className="h-full w-full object-cover" alt="Preview"/> : <div className="flex flex-col items-center"><Upload size={20}/> <span className="text-xs mt-1">Upload Image (Auto-resized)</span></div>}
+                     <label htmlFor="act-img" className="flex items-center justify-center w-full h-24 border border-dashed border-neutral-700 hover:border-jakdang-accent cursor-pointer text-neutral-500 hover:text-white transition-colors bg-black">
+                       {newActivity.imageUrl ? <img src={newActivity.imageUrl} className="h-full w-full object-cover" alt="Preview"/> : <div className="flex flex-col items-center"><Upload size={20}/> <span className="text-xs mt-1">Upload Image (High Quality)</span></div>}
                      </label>
                    </div>
                    <div className="mt-2 flex items-center gap-2">
                      <Link size={12} className="text-neutral-500" />
-                     <input placeholder="Or paste Image URL" value={newActivity.imageUrl} onChange={e => setNewActivity({...newActivity, imageUrl: e.target.value})} className="bg-transparent border-b border-neutral-800 text-xs w-full py-1 text-white outline-none focus:border-jakdang-accent" />
+                     <input placeholder="Or paste Image URL" value={newActivity.imageUrl} onChange={e => setNewActivity({...newActivity, imageUrl: e.target.value})} className="bg-transparent border-b border-neutral-700 text-xs w-full py-1 text-white outline-none focus:border-jakdang-accent" />
                    </div>
                 </div>
-
-                <button type="submit" className="w-full bg-white text-black font-bold py-2 hover:bg-jakdang-accent hover:text-white transition-colors">ADD TO DATABASE</button>
+                <button type="submit" className="w-full bg-white text-black font-bold py-2 hover:bg-jakdang-accent hover:text-white transition-colors shadow-lg">ADD TO DATABASE</button>
               </form>
             </div>
             <div className="lg:col-span-2 space-y-2">
               {activities.map(a => (
-                <div key={a.id} className="flex justify-between items-center p-4 border border-neutral-800 bg-neutral-900">
+                <div key={a.id} className="flex justify-between items-center p-4 border border-neutral-800 bg-neutral-900 hover:shadow-md transition-shadow">
                   <div><h4 className="font-bold text-white">{a.title}</h4><p className="text-xs text-neutral-500">{a.date} | {a.type}</p></div>
                   <button onClick={() => deleteActivity(a.id)} className="text-neutral-600 hover:text-red-500"><Trash2 size={18}/></button>
                 </div>
@@ -424,26 +422,26 @@ export const Admin: React.FC<AdminProps> = ({
           </>
         )}
 
-        {/* === ARCHIVE TAB === */}
+        {/* Archive Tab */}
         {activeTab === 'archive' && (
           <>
-            <div className="lg:col-span-1 bg-neutral-900/50 p-6 border border-neutral-800 h-fit">
+            <div className="lg:col-span-1 bg-neutral-900 p-6 border border-neutral-800 h-fit shadow-sm">
               <h3 className="text-sm font-bold text-white mb-4 uppercase tracking-wider flex items-center gap-2"><Plus size={16}/> New Entry</h3>
               <form onSubmit={handleAddArchive} className="space-y-4">
-                <input placeholder="Title" value={newArchive.title} onChange={e => setNewArchive({...newArchive, title: e.target.value})} className="w-full bg-black border border-neutral-800 px-3 py-2 text-white outline-none focus:border-jakdang-accent" required />
+                <input placeholder="Title" value={newArchive.title} onChange={e => setNewArchive({...newArchive, title: e.target.value})} className="w-full bg-black border border-neutral-700 px-3 py-2 text-white outline-none focus:border-jakdang-accent" required />
                 <div className="grid grid-cols-2 gap-2">
-                  <select value={newArchive.type} onChange={e => setNewArchive({...newArchive, type: e.target.value as any})} className="bg-black border border-neutral-800 text-white px-3 py-2 outline-none">
+                  <select value={newArchive.type} onChange={e => setNewArchive({...newArchive, type: e.target.value as any})} className="bg-black border border-neutral-700 text-white px-3 py-2 outline-none">
                     <option value="Award">Award</option><option value="Publication">Publication</option><option value="Exhibition">Exhibition</option>
                   </select>
-                  <input placeholder="Year" value={newArchive.year} onChange={e => setNewArchive({...newArchive, year: e.target.value})} className="bg-black border border-neutral-800 text-white px-3 py-2 outline-none" />
+                  <input placeholder="Year" value={newArchive.year} onChange={e => setNewArchive({...newArchive, year: e.target.value})} className="bg-black border border-neutral-700 text-white px-3 py-2 outline-none" />
                 </div>
-                <textarea placeholder="Description" value={newArchive.description} onChange={e => setNewArchive({...newArchive, description: e.target.value})} className="w-full bg-black border border-neutral-800 px-3 py-2 text-white outline-none h-20" />
-                <button type="submit" className="w-full bg-white text-black font-bold py-2 hover:bg-jakdang-accent hover:text-white transition-colors">ADD TO DATABASE</button>
+                <textarea placeholder="Description" value={newArchive.description} onChange={e => setNewArchive({...newArchive, description: e.target.value})} className="w-full bg-black border border-neutral-700 px-3 py-2 text-white outline-none h-20" />
+                <button type="submit" className="w-full bg-white text-black font-bold py-2 hover:bg-jakdang-accent hover:text-white transition-colors shadow-lg">ADD TO DATABASE</button>
               </form>
             </div>
             <div className="lg:col-span-2 space-y-2">
               {archive.map(a => (
-                <div key={a.id} className="flex justify-between items-center p-4 border border-neutral-800 bg-neutral-900">
+                <div key={a.id} className="flex justify-between items-center p-4 border border-neutral-800 bg-neutral-900 hover:shadow-md transition-shadow">
                   <div><h4 className="font-bold text-white">{a.title}</h4><p className="text-xs text-neutral-500">{a.year} | {a.type}</p></div>
                   <button onClick={() => deleteArchive(a.id)} className="text-neutral-600 hover:text-red-500"><Trash2 size={18}/></button>
                 </div>
@@ -454,7 +452,7 @@ export const Admin: React.FC<AdminProps> = ({
         
         {/* === SITE CONFIG TAB === */}
         {activeTab === 'config' && (
-          <div className="lg:col-span-3 bg-neutral-900/50 p-6 border border-neutral-800">
+          <div className="lg:col-span-3 bg-neutral-900 p-6 border border-neutral-800 shadow-sm">
              <div className="flex justify-between items-center mb-6">
                 <h3 className="text-lg font-bold text-white uppercase tracking-wider flex items-center gap-2">
                   <Settings size={20} /> Site Content Configuration
@@ -474,12 +472,12 @@ export const Admin: React.FC<AdminProps> = ({
                      <label className="block text-xs text-neutral-500 mb-2">Background Image</label>
                      <div className="relative group">
                        <input type="file" accept="image/*" onChange={handleHeroImageUpload} className="hidden" id="hero-img" />
-                       <label htmlFor="hero-img" className="flex items-center justify-center w-full aspect-video border border-dashed border-neutral-700 hover:border-jakdang-accent cursor-pointer text-neutral-500 hover:text-white transition-colors bg-black/50 overflow-hidden relative">
+                       <label htmlFor="hero-img" className="flex items-center justify-center w-full aspect-video border border-dashed border-neutral-700 hover:border-jakdang-accent cursor-pointer text-neutral-500 hover:text-white transition-colors bg-black overflow-hidden relative">
                          {config.homeHeroImageUrl ? (
                            <>
                              <img src={config.homeHeroImageUrl} className="h-full w-full object-cover opacity-80" alt="Preview"/>
                              <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity">
-                               <span className="flex items-center gap-2 text-sm font-bold"><Upload size={16}/> Change Image</span>
+                               <span className="flex items-center gap-2 text-sm font-bold text-white"><Upload size={16}/> Change Image</span>
                              </div>
                            </>
                          ) : (
@@ -494,7 +492,7 @@ export const Admin: React.FC<AdminProps> = ({
                           placeholder="Or paste Image URL directly" 
                           value={config.homeHeroImageUrl} 
                           onChange={handleConfigUpdate}
-                          className="bg-transparent border-b border-neutral-800 text-xs w-full py-1 text-white outline-none focus:border-jakdang-accent"
+                          className="bg-transparent border-b border-neutral-700 text-xs w-full py-1 text-white outline-none focus:border-jakdang-accent"
                        />
                      </div>
                    </div>
@@ -503,49 +501,83 @@ export const Admin: React.FC<AdminProps> = ({
                    <div className="space-y-4">
                      <div>
                        <label className="block text-xs text-neutral-500 mb-1">Hero Title</label>
-                       <input name="homeHeroTitle" value={config.homeHeroTitle} onChange={handleConfigUpdate} className="w-full bg-black border border-neutral-800 px-3 py-2 text-white outline-none" />
+                       <input name="homeHeroTitle" value={config.homeHeroTitle} onChange={handleConfigUpdate} className="w-full bg-black border border-neutral-700 px-3 py-2 text-white outline-none" />
                      </div>
                      <div>
                        <label className="block text-xs text-neutral-500 mb-1">Hero Subtitle</label>
-                       <input name="homeHeroSubtitle" value={config.homeHeroSubtitle} onChange={handleConfigUpdate} className="w-full bg-black border border-neutral-800 px-3 py-2 text-white outline-none" />
+                       <input name="homeHeroSubtitle" value={config.homeHeroSubtitle} onChange={handleConfigUpdate} className="w-full bg-black border border-neutral-700 px-3 py-2 text-white outline-none" />
                      </div>
                      <div>
                        <label className="block text-xs text-neutral-500 mb-1">Hero Description</label>
-                       <textarea name="homeHeroDescription" value={config.homeHeroDescription} onChange={handleConfigUpdate} className="w-full bg-black border border-neutral-800 px-3 py-2 text-white outline-none h-24" />
+                       <textarea name="homeHeroDescription" value={config.homeHeroDescription} onChange={handleConfigUpdate} className="w-full bg-black border border-neutral-700 px-3 py-2 text-white outline-none h-24" />
                      </div>
                    </div>
                  </div>
                </div>
 
-               {/* ... (Other Config sections remain the same) ... */}
+               {/* Process Section Images */}
+               <div className="space-y-6 md:col-span-2 border-b border-neutral-800 pb-8">
+                 <h4 className="text-jakdang-accent font-bold text-sm flex items-center gap-2">
+                   <Layers size={16} /> Process Section Images (Hover Effect)
+                 </h4>
+                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                   {[
+                     { key: 'processResearchImageUrl', label: 'Research', icon: PenTool },
+                     { key: 'processNarrativeImageUrl', label: 'Narrative', icon: Layers },
+                     { key: 'processMassingImageUrl', label: 'Massing', icon: Box },
+                     { key: 'processOutputImageUrl', label: 'Output', icon: ArrowRight },
+                   ].map((item) => (
+                     <div key={item.key}>
+                       <label className="block text-xs text-neutral-500 mb-2 flex items-center gap-1"><item.icon size={12}/> {item.label}</label>
+                       <div className="relative group">
+                         <input type="file" accept="image/*" onChange={handleConfigImageUpload(item.key as keyof SiteConfig)} className="hidden" id={`proc-img-${item.key}`} />
+                         <label htmlFor={`proc-img-${item.key}`} className="flex items-center justify-center w-full aspect-square border border-dashed border-neutral-700 hover:border-jakdang-accent cursor-pointer text-neutral-500 hover:text-white transition-colors bg-black overflow-hidden relative">
+                           {config[item.key as keyof SiteConfig] ? (
+                             <>
+                               <img src={config[item.key as keyof SiteConfig] as string} className="h-full w-full object-cover opacity-80" alt="Preview"/>
+                               <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity">
+                                 <Upload size={16} className="text-white"/>
+                               </div>
+                             </>
+                           ) : (
+                             <div className="flex flex-col items-center"><Upload size={16}/></div>
+                           )}
+                         </label>
+                       </div>
+                     </div>
+                   ))}
+                 </div>
+               </div>
+
+               {/* Text Configs */}
                <div className="space-y-4">
-                 <h4 className="text-jakdang-accent font-bold text-sm border-b border-neutral-700 pb-2">About Page Text</h4>
+                 <h4 className="text-jakdang-accent font-bold text-sm border-b border-neutral-800 pb-2">About Page Text</h4>
                  <div>
                    <label className="block text-xs text-neutral-500 mb-1">Definition Text</label>
-                   <textarea name="aboutDefinition" value={config.aboutDefinition} onChange={handleConfigUpdate} className="w-full bg-black border border-neutral-800 px-3 py-2 text-white outline-none h-24" />
+                   <textarea name="aboutDefinition" value={config.aboutDefinition} onChange={handleConfigUpdate} className="w-full bg-black border border-neutral-700 px-3 py-2 text-white outline-none h-24" />
                  </div>
                  <div>
                    <label className="block text-xs text-neutral-500 mb-1">Description Text</label>
-                   <textarea name="aboutDescription" value={config.aboutDescription} onChange={handleConfigUpdate} className="w-full bg-black border border-neutral-800 px-3 py-2 text-white outline-none h-24" />
+                   <textarea name="aboutDescription" value={config.aboutDescription} onChange={handleConfigUpdate} className="w-full bg-black border border-neutral-700 px-3 py-2 text-white outline-none h-24" />
                  </div>
                </div>
 
                <div className="space-y-4">
-                 <h4 className="text-jakdang-accent font-bold text-sm border-b border-neutral-700 pb-2">Contact Page Text</h4>
+                 <h4 className="text-jakdang-accent font-bold text-sm border-b border-neutral-800 pb-2">Contact Page Text</h4>
                  <div>
                    <label className="block text-xs text-neutral-500 mb-1">Recruitment Text</label>
-                   <textarea name="contactRecruitText" value={config.contactRecruitText} onChange={handleConfigUpdate} className="w-full bg-black border border-neutral-800 px-3 py-2 text-white outline-none h-20" />
+                   <textarea name="contactRecruitText" value={config.contactRecruitText} onChange={handleConfigUpdate} className="w-full bg-black border border-neutral-700 px-3 py-2 text-white outline-none h-20" />
                  </div>
                  <div>
                    <label className="block text-xs text-neutral-500 mb-1">Collaboration Text</label>
-                   <textarea name="contactCollabText" value={config.contactCollabText} onChange={handleConfigUpdate} className="w-full bg-black border border-neutral-800 px-3 py-2 text-white outline-none h-20" />
+                   <textarea name="contactCollabText" value={config.contactCollabText} onChange={handleConfigUpdate} className="w-full bg-black border border-neutral-700 px-3 py-2 text-white outline-none h-20" />
                  </div>
                </div>
              </div>
           </div>
         )}
 
-        {/* === DATABASE TAB === */}
+        {/* === DATABASE TAB (Existing) === */}
         {activeTab === 'system' && (
           <div className="lg:col-span-3 bg-neutral-900/50 p-8 border border-neutral-800">
              <div className="flex items-center gap-3 mb-6 pb-6 border-b border-neutral-800">

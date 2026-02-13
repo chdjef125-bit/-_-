@@ -43,7 +43,12 @@ const INITIAL_SITE_CONFIG: SiteConfig = {
   aboutDefinition: "We redefine 'Conspiracy' (작당/Jakdang). It is not a plot for harm, but a plot for creation. It is a collective effort to disturb the stagnant waters of conventional student architecture.",
   aboutDescription: "We operate as a semi-professional studio. Hierarchy exists only in experience, not in speech. Critique is sharp, but intended to sculpt better ideas.",
   contactRecruitText: "We recruit new conspirators every March and September. Check our Instagram for the secret code.",
-  contactCollabText: "Open for exhibitions, joint studios, and freelance design commissions."
+  contactCollabText: "Open for exhibitions, joint studios, and freelance design commissions.",
+  // Default Process Images
+  processResearchImageUrl: "https://images.unsplash.com/photo-1544531586-fde5298cdd40?q=80&w=2070&auto=format&fit=crop",
+  processNarrativeImageUrl: "https://images.unsplash.com/photo-1455390582262-044cdead277a?q=80&w=2073&auto=format&fit=crop",
+  processMassingImageUrl: "https://images.unsplash.com/photo-1503387762-592deb58ef4e?q=80&w=2071&auto=format&fit=crop",
+  processOutputImageUrl: "https://images.unsplash.com/photo-1487958449943-2429e8be8625?q=80&w=2070&auto=format&fit=crop"
 };
 
 // LocalStorage Keys (Fallback)
@@ -79,7 +84,10 @@ const fetchData = async <T>(collectionName: string, localKey: string, initial: T
       if (collectionName === 'config') {
          const docRef = doc(db, 'settings', 'siteConfig');
          const docSnap = await getDoc(docRef);
-         if (docSnap.exists()) return docSnap.data() as T;
+         if (docSnap.exists()) {
+            // For config, merge with initial to ensure new fields exist even if DB is old
+            return { ...initial, ...docSnap.data() } as T;
+         }
          return initial;
       } else {
          const querySnapshot = await getDocs(collection(db, collectionName));

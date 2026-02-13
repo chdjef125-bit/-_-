@@ -24,16 +24,13 @@
             },
             colors: {
               jakdang: {
-                black: '#0a0a0a',
-                dark: '#171717',
-                gray: '#262626',
-                accent: '#800020', // Luxurious Burgundy
-                text: '#e5e5e5',
-                muted: '#a3a3a3'
+                base: '#000000',    // Pure Black
+                panel: '#0a0a0a',   // Almost Black
+                border: '#1a1a1a',  // Very Subtle Border
+                accent: '#2563eb',  // Cobalt Blue
+                text: '#ffffff',    // White text
+                muted: '#666666'    // Darker gray text
               }
-            },
-            backgroundImage: {
-              'grid-pattern': "linear-gradient(to right, #262626 1px, transparent 1px), linear-gradient(to bottom, #262626 1px, transparent 1px)",
             }
           }
         }
@@ -41,59 +38,36 @@
     </script>
     <style>
       body {
-        background-color: #0a0a0a;
-        color: #e5e5e5;
+        background-color: #000000;
+        color: #ffffff;
         font-family: 'Pretendard', sans-serif;
         scroll-behavior: smooth;
+        overflow-x: hidden;
       }
-      .grid-bg {
-        background-size: 40px 40px;
-        mask-image: linear-gradient(to bottom, black 40%, transparent 100%);
-        -webkit-mask-image: linear-gradient(to bottom, black 40%, transparent 100%);
+      * {
+        border-radius: 0 !important; 
       }
-      /* Custom Scrollbar */
+      
+      /* Custom Scrollbar - Minimal */
       ::-webkit-scrollbar {
-        width: 8px;
-      }
-      ::-webkit-scrollbar-track {
-        background: #0a0a0a; 
-      }
-      ::-webkit-scrollbar-thumb {
-        background: #333; 
-      }
-      ::-webkit-scrollbar-thumb:hover {
-        background: #800020; 
+        width: 0px; /* Hide scrollbar for cleaner look, or make very thin */
+        background: transparent;
       }
 
       /* Animations */
       @keyframes fadeInUp {
-        from { opacity: 0; transform: translateY(40px); }
+        from { opacity: 0; transform: translateY(20px); }
         to { opacity: 1; transform: translateY(0); }
       }
       
       .reveal {
         opacity: 0;
-        transform: translateY(50px);
+        transform: translateY(20px);
         transition: all 1s cubic-bezier(0.16, 1, 0.3, 1);
       }
       .reveal.active {
         opacity: 1;
         transform: translateY(0);
-      }
-
-      /* Splash Screen Animations */
-      @keyframes simpleFadeIn {
-        0% { opacity: 0; transform: translateY(20px); }
-        100% { opacity: 1; transform: translateY(0); }
-      }
-      
-      .splash-text {
-        animation: simpleFadeIn 1.5s ease-out forwards;
-      }
-      
-      .splash-fade {
-        animation: simpleFadeIn 1.5s ease-out forwards;
-        opacity: 0; /* Start invisible */
       }
     </style>
   <script type="importmap">

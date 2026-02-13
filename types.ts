@@ -1,5 +1,6 @@
 
-export type PageView = 'home' | 'about' | 'members' | 'works' | 'activity' | 'archive' | 'contact' | 'admin';
+
+export type PageView = 'home' | 'members' | 'works' | 'activity' | 'archive' | 'contact' | 'admin';
 
 export interface SiteConfig {
   homeHeroTitle: string;
@@ -10,6 +11,11 @@ export interface SiteConfig {
   aboutDescription: string;
   contactRecruitText: string;
   contactCollabText: string;
+  // Process Section Images
+  processResearchImageUrl: string;
+  processNarrativeImageUrl: string;
+  processMassingImageUrl: string;
+  processOutputImageUrl: string;
 }
 
 export interface Project {

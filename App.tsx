@@ -3,7 +3,7 @@ import { Layout } from './components/Layout';
 import { Home } from './components/Home';
 import { Works } from './components/Works';
 import { Admin } from './components/Admin';
-import { About, Members, Archive, Activity, Contact } from './components/OtherPages';
+import { Members, Archive, Activity, Contact } from './components/OtherPages';
 import { PageView, Project, Member, ArchiveItem, ActivityLog, SiteConfig } from './types';
 import { DataService } from './services/store';
 
@@ -77,8 +77,7 @@ const App: React.FC = () => {
     switch (currentPage) {
       case 'home':
         return <Home featuredProjects={projects} onNavigate={handleNavigate} config={siteConfig} />;
-      case 'about':
-        return <About config={siteConfig} />;
+      // About page removed
       case 'members':
         return <Members members={members} />;
       case 'works':
