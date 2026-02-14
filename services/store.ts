@@ -43,16 +43,16 @@ const createMember = (name: string, role: 'OB' | 'YB', index: number): Member =>
 });
 
 const obNames = [
-  "Jang Youngjun", "Jo Myeonghun", "Lee Taeryong", "Seol Yunhwan", "Kwak Seongman", "Kim Seongwoo", "Seo Deokjun", 
-  "Jang Byeongdae", "Lee Wonbin", "Choi Inhyeok", "Kim Daeuk", "Kim Seungjun", "Park Sangjin", "Jeong Yeowon"
+  "Jang Young-jun", "Jo Myeong-hun", "Lee Tae-ryong", "Seol Yun-hwan", "Kwak Seong-man", "Kim Seong-woo", "Seo Deok-jun", 
+  "Jang Byeong-dae", "Lee Won-bin", "Choi In-hyeok", "Kim Dae-uk", "Kim Seung-jun", "Park Sang-jin", "Jeong Yeo-won"
 ];
 
 const ybNames = [
-  "Kim Dongjun", "Baek Eunseo", "Yang Gyumin", "Kim Seoyoung", "Kim Hyunmin", "Geum Dongseok", "Ryu Hyeju", 
-  "Choi Minwoo", "Park Yena", "Park Jeong-a", "Bae Donggyun", "Bae Junseo", "Baek Jinuk", "Kim Bomin", 
-  "Son Hyeokjin", "Shin Jinsu", "Bae Yunju", "Jeong Yunchae", "Lee Seungmin", "Lee Wonseo", "Lee Juhyeong", 
-  "Lee Hyerin", "Jeon Yuna", "Jeong Minjae", "Jeong Hyerin", "Jo Yejin", "Jo Jaehee", "Kwak Chaeyun", 
-  "Hwang Jiseung", "Kim Gyeongwon", "Park Hogeun", "Choi Jiseong"
+  "Kim Dong-jun", "Baek Eun-seo", "Yang Gyu-min", "Kim Seo-young", "Kim Hyun-min", "Geum Dong-seok", "Ryu Hye-ju", 
+  "Choi Min-woo", "Park Ye-na", "Park Jeong-a", "Bae Dong-gyun", "Bae Jun-seo", "Baek Jin-uk", "Kim Bo-min", 
+  "Son Hyeok-jin", "Shin Jin-su", "Bae Yun-ju", "Jeong Yun-chae", "Lee Seung-min", "Lee Won-seo", "Lee Ju-hyeong", 
+  "Lee Hye-rin", "Jeon Yu-na", "Jeong Min-jae", "Jeong Hye-rin", "Jo Ye-jin", "Jo Jae-hee", "Kwak Chae-yun", 
+  "Hwang Ji-seung", "Kim Gyeong-won", "Park Ho-geun", "Choi Ji-seong"
 ];
 
 const INITIAL_MEMBERS: Member[] = [
@@ -167,10 +167,10 @@ const INITIAL_SITE_CONFIG: SiteConfig = {
 
 // LocalStorage Keys (Fallback)
 const KEYS = {
-  PROJECTS: 'jakdang_projects_v7',
-  MEMBERS: 'jakdang_members_v7',
-  AWARDS: 'jakdang_awards_v7',
-  ACTIVITIES: 'jakdang_activities_v7', // Deprecated but kept for key stability if needed
+  PROJECTS: 'jakdang_projects_v7', // Keep v7
+  MEMBERS: 'jakdang_members_v8',   // Bump to v8 to refresh members
+  AWARDS: 'jakdang_awards_v7',     // Keep v7
+  ACTIVITIES: 'jakdang_activities_v7',
   SITE_CONFIG: 'jakdang_config_v7'
 };
 
