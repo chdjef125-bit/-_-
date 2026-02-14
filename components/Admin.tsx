@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { Project, Member, ActivityLog, AwardItem, SiteConfig } from '../types';
-import { Trash2, Plus, Lock, LogOut, Layout, Users, Calendar, Archive, FileText, Settings, Upload, Image as ImageIcon, Link, Download, Save, AlertTriangle, Code, Globe, FileJson, RefreshCw, Database, CloudLightning, Grid, X } from 'lucide-react';
+import { Trash2, Plus, Lock, LogOut, Layout, Users, Calendar, Archive, FileText, Settings, Upload, Image as ImageIcon, Link, Download, Save, AlertTriangle, Code, Globe, FileJson, RefreshCw, Database, CloudLightning, Grid, X, ArrowUp, ArrowDown } from 'lucide-react';
 import { DataService } from '../services/store';
 
 interface AdminProps {
@@ -37,7 +37,7 @@ export const Admin: React.FC<AdminProps> = ({
     title: '', category: 'Academic', year: '2024', author: '', description: '', imageUrl: '', tags: []
   });
   const [newMember, setNewMember] = useState<Partial<Member>>({
-    name: '', role: 'Member', cohort: '13th', philosophy: '', imageUrl: ''
+    name: '', role: 'YB', philosophy: '', imageUrl: '', order: 0
   });
   const [newActivity, setNewActivity] = useState<Partial<ActivityLog>>({
     title: '', date: '2024.01', type: 'Workshop', description: '', imageUrl: ''
@@ -137,11 +137,31 @@ export const Admin: React.FC<AdminProps> = ({
 
   const handleAddMember = (e: React.FormEvent) => {
     e.preventDefault();
-    const item: Member = { ...newMember as Member, id: DataService.generateId() };
+    const maxOrder = members.length > 0 ? Math.max(...members.map(m => m.order || 0)) : 0;
+    const item: Member = { ...newMember as Member, id: DataService.generateId(), order: maxOrder + 1 };
     const updated = [item, ...members];
     setMembers(updated);
     safeSave(DataService.saveMembers, updated);
-    setNewMember({ name: '', role: 'Member', cohort: '13th', philosophy: '', imageUrl: '' });
+    setNewMember({ name: '', role: 'YB', philosophy: '', imageUrl: '', order: 0 });
+  };
+
+  const moveMember = (index: number, direction: -1 | 1) => {
+    // Sort current members by order first to ensure visual order matches array index
+    const sortedMembers = [...members].sort((a, b) => (a.order || 0) - (b.order || 0));
+    
+    // Check bounds
+    if (index + direction < 0 || index + direction >= sortedMembers.length) return;
+    
+    // Swap items
+    const temp = sortedMembers[index];
+    sortedMembers[index] = sortedMembers[index + direction];
+    sortedMembers[index + direction] = temp;
+    
+    // Re-assign order based on new index
+    const reorderedMembers = sortedMembers.map((m, i) => ({ ...m, order: i }));
+    
+    setMembers(reorderedMembers);
+    safeSave(DataService.saveMembers, reorderedMembers);
   };
 
   const handleAddActivity = (e: React.FormEvent) => {
@@ -251,6 +271,9 @@ export const Admin: React.FC<AdminProps> = ({
     );
   }
 
+  // Pre-sort members for display
+  const displayMembers = [...members].sort((a, b) => (a.order || 0) - (b.order || 0));
+
   return (
     <div className="space-y-8 relative bg-black min-h-screen p-4 md:p-0">
        {/* Global Saving Indicator */}
@@ -323,7 +346,11 @@ export const Admin: React.FC<AdminProps> = ({
                 <input placeholder="Title" value={newProject.title} onChange={e => setNewProject({...newProject, title: e.target.value})} className="w-full bg-black border border-neutral-700 px-3 py-2 text-white outline-none focus:border-jakdang-accent" required />
                 <div className="grid grid-cols-2 gap-2">
                   <select value={newProject.category} onChange={e => setNewProject({...newProject, category: e.target.value as any})} className="bg-black border border-neutral-700 text-white px-3 py-2 outline-none">
-                    <option value="Academic">Academic</option><option value="Competition">Competition</option><option value="Team">Team</option><option value="Personal">Personal</option>
+                    <option value="Academic">Academic</option>
+                    <option value="Competition">Competition</option>
+                    <option value="Team">Team</option>
+                    <option value="Personal">Personal</option>
+                    <option value="Study">Study</option>
                   </select>
                   <input placeholder="Year" value={newProject.year} onChange={e => setNewProject({...newProject, year: e.target.value})} className="bg-black border border-neutral-700 text-white px-3 py-2 outline-none" />
                 </div>
@@ -363,11 +390,10 @@ export const Admin: React.FC<AdminProps> = ({
               <h3 className="text-sm font-bold text-white mb-4 uppercase tracking-wider flex items-center gap-2"><Plus size={16}/> New Member</h3>
               <form onSubmit={handleAddMember} className="space-y-4">
                 <input placeholder="Name" value={newMember.name} onChange={e => setNewMember({...newMember, name: e.target.value})} className="w-full bg-black border border-neutral-700 px-3 py-2 text-white outline-none focus:border-jakdang-accent" required />
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 gap-2">
                   <select value={newMember.role} onChange={e => setNewMember({...newMember, role: e.target.value as any})} className="bg-black border border-neutral-700 text-white px-3 py-2 outline-none">
-                    <option value="Leadership">Leadership</option><option value="Member">Member</option><option value="Alumni">Alumni</option>
+                    <option value="YB">YB (Active)</option><option value="OB">OB (Alumni)</option>
                   </select>
-                  <input placeholder="Cohort (e.g. 13th)" value={newMember.cohort} onChange={e => setNewMember({...newMember, cohort: e.target.value})} className="bg-black border border-neutral-700 text-white px-3 py-2 outline-none" />
                 </div>
                 <input placeholder="Philosophy (One liner) - Optional" value={newMember.philosophy} onChange={e => setNewMember({...newMember, philosophy: e.target.value})} className="w-full bg-black border border-neutral-700 px-3 py-2 text-white outline-none" />
                 <div>
@@ -387,11 +413,30 @@ export const Admin: React.FC<AdminProps> = ({
               </form>
             </div>
             <div className="lg:col-span-2 space-y-2">
-              {members.map(m => (
+              <div className="bg-neutral-800/30 p-2 mb-2 text-xs text-neutral-500 text-center">Use arrows to reorder members</div>
+              {displayMembers.map((m, index) => (
                 <div key={m.id} className="flex justify-between items-center p-4 border border-neutral-800 bg-neutral-900 hover:shadow-md transition-shadow">
                   <div className="flex items-center gap-4">
+                     {/* Reorder Buttons */}
+                     <div className="flex flex-col gap-1 mr-2">
+                       <button 
+                         onClick={() => moveMember(index, -1)} 
+                         disabled={index === 0}
+                         className="p-1 hover:bg-neutral-800 text-neutral-500 disabled:opacity-20 transition-colors"
+                       >
+                         <ArrowUp size={14} />
+                       </button>
+                       <button 
+                         onClick={() => moveMember(index, 1)}
+                         disabled={index === displayMembers.length - 1} 
+                         className="p-1 hover:bg-neutral-800 text-neutral-500 disabled:opacity-20 transition-colors"
+                       >
+                         <ArrowDown size={14} />
+                       </button>
+                     </div>
+
                      {m.imageUrl && <img src={m.imageUrl} alt="" className="w-10 h-10 object-cover rounded-full bg-neutral-800" />}
-                     <div><h4 className="font-bold text-white">{m.name}</h4><p className="text-xs text-neutral-500">{m.role} | {m.cohort}</p></div>
+                     <div><h4 className="font-bold text-white">{m.name}</h4><p className="text-xs text-neutral-500">{m.role}</p></div>
                   </div>
                   <button onClick={() => deleteMember(m.id)} className="text-neutral-600 hover:text-red-500"><Trash2 size={18}/></button>
                 </div>

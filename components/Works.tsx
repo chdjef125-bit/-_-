@@ -6,7 +6,7 @@ interface WorksProps {
 }
 
 export const Works: React.FC<WorksProps> = ({ projects }) => {
-  const [filter, setFilter] = useState<'All' | 'Academic' | 'Competition' | 'Personal' | 'Team'>('All');
+  const [filter, setFilter] = useState<'All' | 'Academic' | 'Competition' | 'Study'>('All');
   
   const filteredProjects = filter === 'All' 
     ? projects 
@@ -16,9 +16,9 @@ export const Works: React.FC<WorksProps> = ({ projects }) => {
     <div className="bg-black min-h-screen">
       <div className="max-w-[1920px] mx-auto">
         
-        {/* Large Typographic Filter - Scaled up to match other pages headers */}
+        {/* Large Typographic Filter */}
         <div className="px-6 md:px-12 py-12 md:py-24 flex flex-wrap gap-x-6 md:gap-x-12 gap-y-2 items-baseline select-none">
-          {['All', 'Academic', 'Competition', 'Team', 'Personal'].map((cat) => (
+          {['All', 'Academic', 'Competition', 'Study'].map((cat) => (
             <button
               key={cat}
               onClick={() => setFilter(cat as any)}

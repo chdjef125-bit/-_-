@@ -4,62 +4,46 @@ import { FileText, MapPin, Mail, Instagram, ExternalLink, Calendar, BookOpen, Us
 
 /* --- MEMBERS PAGE --- */
 
-const MemberCard: React.FC<{ m: Member, gray?: boolean }> = ({ m, gray = false }) => (
-  <div className="group relative">
-    <div className={`aspect-[3/4] overflow-hidden mb-4 ${gray ? 'grayscale opacity-50 group-hover:opacity-100' : 'grayscale group-hover:grayscale-0'} transition-all duration-500 bg-neutral-900`}>
-      {m.imageUrl ? (
-        <img src={m.imageUrl} alt={m.name} className="w-full h-full object-cover" />
-      ) : (
-        <div className="w-full h-full flex items-center justify-center bg-neutral-900 text-neutral-700">No Image</div>
-      )}
-    </div>
-    <div className="border-t border-neutral-900 pt-4">
-      <h4 className="text-xl font-bold text-white">{m.name}</h4>
-      <p className="text-xs text-neutral-500 font-mono uppercase mb-2">{m.cohort} | {m.role}</p>
-      {m.philosophy && m.philosophy.trim() !== "" && (
-        <p className="text-sm text-neutral-600 line-clamp-2">"{m.philosophy}"</p>
-      )}
-    </div>
+const MemberCard: React.FC<{ m: Member }> = ({ m }) => (
+  <div className="group relative border-t border-neutral-900 pt-4 pb-8 transition-colors hover:bg-neutral-900/50">
+      <h4 className="text-xl md:text-2xl font-bold text-white group-hover:text-red-600 transition-colors uppercase tracking-tight">{m.name}</h4>
   </div>
 );
 
 export const Members: React.FC<{ members: Member[] }> = ({ members }) => {
-  const leadership = members.filter(m => m.role === 'Leadership');
-  const regular = members.filter(m => m.role === 'Member');
-  const alumni = members.filter(m => m.role === 'Alumni');
+  // Sort members by order field
+  const sortedMembers = [...members].sort((a, b) => (a.order || 0) - (b.order || 0));
+
+  const obMembers = sortedMembers.filter(m => m.role === 'OB');
+  const ybMembers = sortedMembers.filter(m => m.role === 'YB');
 
   return (
     <div className="max-w-[1920px] mx-auto px-6 md:px-12 space-y-24">
+      {/* OB Section (Top) */}
       <section>
-        <h2 className="text-6xl md:text-8xl font-bold text-neutral-800 mb-12 tracking-tighter">LEADERSHIP</h2>
-        {leadership.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-x-8 gap-y-12">
-            {leadership.map(m => <MemberCard key={m.id} m={m} />)}
+         <div className="flex items-baseline gap-4 mb-12">
+           <h2 className="text-6xl md:text-8xl font-bold text-neutral-800 tracking-tighter">OB</h2>
+         </div>
+        {obMembers.length > 0 ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-x-8 gap-y-0">
+            {obMembers.map(m => <MemberCard key={m.id} m={m} />)}
           </div>
         ) : (
-          <p className="text-neutral-600 font-mono">No leadership members listed.</p>
-        )}
-      </section>
-      
-      <section>
-        <h2 className="text-6xl md:text-8xl font-bold text-neutral-800 mb-12 tracking-tighter">MEMBERS</h2>
-        {regular.length > 0 ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-x-6 gap-y-12">
-            {regular.map(m => <MemberCard key={m.id} m={m} />)}
-          </div>
-        ) : (
-           <p className="text-neutral-600 font-mono">No members listed.</p>
+           <p className="text-neutral-600 font-mono">No alumni members listed.</p>
         )}
       </section>
 
+      {/* YB Section (Bottom) */}
       <section className="pb-24">
-        <h2 className="text-6xl md:text-8xl font-bold text-neutral-900 mb-12 tracking-tighter">ALUMNI</h2>
-        {alumni.length > 0 ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-x-6 gap-y-12">
-            {alumni.map(m => <MemberCard key={m.id} m={m} gray />)}
+        <div className="flex items-baseline gap-4 mb-12">
+          <h2 className="text-6xl md:text-8xl font-bold text-neutral-800 tracking-tighter">YB</h2>
+        </div>
+        {ybMembers.length > 0 ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-x-8 gap-y-0">
+            {ybMembers.map(m => <MemberCard key={m.id} m={m} />)}
           </div>
         ) : (
-           <p className="text-neutral-600 font-mono">No alumni listed.</p>
+           <p className="text-neutral-600 font-mono">No active members listed.</p>
         )}
       </section>
     </div>
@@ -67,48 +51,50 @@ export const Members: React.FC<{ members: Member[] }> = ({ members }) => {
 };
 
 /* --- AWARDS PAGE (Formerly Archive) --- */
-export const Awards: React.FC<{ items: AwardItem[] }> = ({ items }) => (
-  <div className="max-w-[1920px] mx-auto px-6 md:px-12">
-    <div className="flex items-end justify-between border-b border-neutral-800 pb-8 mb-8">
-      <h1 className="text-6xl md:text-8xl font-bold text-white tracking-tighter">AWARD</h1>
-      <span className="font-mono text-sm text-neutral-500 font-bold mb-4">{items.length} RECORDS</span>
-    </div>
+export const Awards: React.FC<{ items: AwardItem[] }> = ({ items }) => {
+  // Sort items by year descending (Recent first)
+  const sortedItems = [...items].sort((a, b) => {
+    // Assuming year is YYYY format. String comparison is sufficient for descending sort.
+    if (b.year > a.year) return 1;
+    if (b.year < a.year) return -1;
+    return 0;
+  });
 
-    <div className="overflow-x-auto pb-24">
-      <table className="w-full text-left border-collapse">
-        <thead>
-          <tr className="border-b border-neutral-800 text-xs text-neutral-500 uppercase font-mono tracking-wider">
-            <th className="py-4 font-normal w-24">Year</th>
-            <th className="py-4 font-normal w-32">Type</th>
-            <th className="py-4 font-normal">Title</th>
-            <th className="py-4 font-normal hidden md:table-cell">Description</th>
-          </tr>
-        </thead>
-        <tbody className="text-sm">
-          {items.map(item => (
-            <tr key={item.id} className="border-b border-neutral-900 hover:bg-neutral-900 transition-colors group">
-              <td className="py-6 text-neutral-500 font-mono">{item.year}</td>
-              <td className="py-6">
-                <span className={`px-2 py-1 text-[10px] uppercase border font-bold ${
-                  item.type === 'Award' ? 'border-white text-white' : 'border-neutral-800 text-neutral-500'
-                }`}>
-                  {item.type}
-                </span>
-              </td>
-              <td className="py-6 text-xl font-bold text-white group-hover:translate-x-2 transition-transform duration-300">{item.title}</td>
-              <td className="py-6 text-neutral-500 max-w-md hidden md:table-cell">{item.description}</td>
+  return (
+    <div className="max-w-[1920px] mx-auto px-6 md:px-12">
+      <div className="flex items-end justify-between border-b border-neutral-800 pb-8 mb-8">
+        <h1 className="text-6xl md:text-8xl font-bold text-white tracking-tighter">AWARD</h1>
+        <span className="font-mono text-sm text-neutral-500 font-bold mb-4">{items.length} RECORDS</span>
+      </div>
+
+      <div className="overflow-x-auto pb-24">
+        <table className="w-full text-left border-collapse">
+          <thead>
+            <tr className="border-b border-neutral-800 text-xs text-neutral-500 uppercase font-mono tracking-wider">
+              <th className="py-4 font-normal w-24">Year</th>
+              <th className="py-4 font-normal">Title</th>
+              <th className="py-4 font-normal hidden md:table-cell">Description</th>
             </tr>
-          ))}
-          {items.length === 0 && (
-             <tr>
-               <td colSpan={4} className="py-32 text-center text-neutral-700 font-mono uppercase tracking-widest">No records found</td>
-             </tr>
-          )}
-        </tbody>
-      </table>
+          </thead>
+          <tbody className="text-sm">
+            {sortedItems.map(item => (
+              <tr key={item.id} className="border-b border-neutral-900 hover:bg-neutral-900 transition-colors group">
+                <td className="py-6 text-neutral-500 font-mono">{item.year}</td>
+                <td className="py-6 text-xl font-bold text-white group-hover:translate-x-2 transition-transform duration-300">{item.title}</td>
+                <td className="py-6 text-neutral-500 max-w-md hidden md:table-cell">{item.description}</td>
+              </tr>
+            ))}
+            {sortedItems.length === 0 && (
+               <tr>
+                 <td colSpan={3} className="py-32 text-center text-neutral-700 font-mono uppercase tracking-widest">No records found</td>
+               </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 /* --- ACTIVITY PAGE --- */
 export const Activity: React.FC<{ items: ActivityLog[] }> = ({ items }) => (

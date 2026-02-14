@@ -21,7 +21,7 @@ export interface SiteConfig {
 export interface Project {
   id: string;
   title: string;
-  category: 'Academic' | 'Competition' | 'Personal' | 'Team';
+  category: 'Academic' | 'Competition' | 'Personal' | 'Team' | 'Study';
   year: string;
   author: string;
   description: string;
@@ -32,10 +32,11 @@ export interface Project {
 export interface Member {
   id: string;
   name: string;
-  role: 'Leadership' | 'Member' | 'Alumni';
-  cohort: string; // 기수
+  role: 'OB' | 'YB'; // Changed from Leadership/Member/Alumni
+  // cohort removed
   philosophy: string;
   imageUrl?: string;
+  order: number; // For manual ordering
 }
 
 export interface ActivityLog {

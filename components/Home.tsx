@@ -116,34 +116,29 @@ export const Home: React.FC<HomeProps> = ({ featuredProjects, onNavigate, config
             
             {/* Left: Text Block */}
             <div className="order-2 md:order-1">
-               {/* Technical/Minimal Label */}
-               <div className="flex items-center gap-3 mb-8 opacity-70">
-                  <div className="w-2 h-2 bg-jakdang-accent"></div>
-                  <span className="font-mono text-xs tracking-[0.2em] text-white">MANIFESTO</span>
-                  <div className="h-px w-16 bg-neutral-800"></div>
-               </div>
+               {/* Label Removed */}
 
                {/* Title - Pure Accent Color */}
                <h2 className="text-6xl md:text-9xl font-bold mb-8 tracking-tighter text-jakdang-accent leading-[0.8]">
                  {config.homeManifestoTitle || "Conspire"}
                </h2>
                
-               {/* Definition */}
-               <div className="border-l border-neutral-800 pl-6 md:pl-8">
+               {/* Definition - Border Removed */}
+               <div>
                  <p className="text-neutral-400 text-lg md:text-xl leading-relaxed font-light max-w-md">
                    {config.aboutDefinition}
                  </p>
                </div>
 
-               {/* Decorative Stats/Info */}
-               <div className="mt-16 grid grid-cols-2 gap-8 border-t border-neutral-900 pt-8 max-w-sm">
+               {/* Stats Restored */}
+               <div className="flex gap-12 mt-12 pt-8 border-t border-neutral-800">
                   <div>
-                    <span className="block text-xs font-mono text-neutral-600 mb-1 uppercase">Establishment</span>
-                    <span className="block text-white font-bold">2021.03</span>
+                    <h4 className="text-xs text-neutral-500 font-mono mb-1 uppercase tracking-widest">Establishment</h4>
+                    <p className="text-2xl font-bold text-white">2021.03</p>
                   </div>
                   <div>
-                    <span className="block text-xs font-mono text-neutral-600 mb-1 uppercase">Location</span>
-                    <span className="block text-white font-bold">Busan, KR</span>
+                    <h4 className="text-xs text-neutral-500 font-mono mb-1 uppercase tracking-widest">Location</h4>
+                    <p className="text-2xl font-bold text-white">Busan, KR</p>
                   </div>
                </div>
             </div>

@@ -31,7 +31,35 @@ if (isFirebaseConfigured) {
 
 // --- INITIAL MOCK DATA (Fallback) ---
 const INITIAL_PROJECTS: Project[] = [];
-const INITIAL_MEMBERS: Member[] = [];
+
+// Helper to generate member objects (No Images)
+const createMember = (name: string, role: 'OB' | 'YB', index: number): Member => ({
+  id: `mem_${role.toLowerCase()}_${index}`,
+  name,
+  role,
+  philosophy: '',
+  imageUrl: undefined, // No images as requested
+  order: index
+});
+
+const obNames = [
+  "Jang Youngjun", "Jo Myeonghun", "Lee Taeryong", "Seol Yunhwan", "Kwak Seongman", "Kim Seongwoo", "Seo Deokjun", 
+  "Jang Byeongdae", "Lee Wonbin", "Choi Inhyeok", "Kim Daeuk", "Kim Seungjun", "Park Sangjin", "Jeong Yeowon"
+];
+
+const ybNames = [
+  "Kim Dongjun", "Baek Eunseo", "Yang Gyumin", "Kim Seoyoung", "Kim Hyunmin", "Geum Dongseok", "Ryu Hyeju", 
+  "Choi Minwoo", "Park Yena", "Park Jeong-a", "Bae Donggyun", "Bae Junseo", "Baek Jinuk", "Kim Bomin", 
+  "Son Hyeokjin", "Shin Jinsu", "Bae Yunju", "Jeong Yunchae", "Lee Seungmin", "Lee Wonseo", "Lee Juhyeong", 
+  "Lee Hyerin", "Jeon Yuna", "Jeong Minjae", "Jeong Hyerin", "Jo Yejin", "Jo Jaehee", "Kwak Chaeyun", 
+  "Hwang Jiseung", "Kim Gyeongwon", "Park Hogeun", "Choi Jiseong"
+];
+
+const INITIAL_MEMBERS: Member[] = [
+  ...obNames.map((name, i) => createMember(name, 'OB', i)),
+  ...ybNames.map((name, i) => createMember(name, 'YB', i + 100))
+];
+
 const INITIAL_ACTIVITIES: ActivityLog[] = [];
 
 const INITIAL_AWARDS: AwardItem[] = [
@@ -129,13 +157,13 @@ const INITIAL_SITE_CONFIG: SiteConfig = {
 };
 
 // LocalStorage Keys (Fallback)
-// Updated to '_v3' to force clear cache/members
+// Updated to '_v7' to force clear cache/members due to structure change
 const KEYS = {
-  PROJECTS: 'jakdang_projects_v3',
-  MEMBERS: 'jakdang_members_v3',
-  AWARDS: 'jakdang_awards_v3',
-  ACTIVITIES: 'jakdang_activities_v3',
-  SITE_CONFIG: 'jakdang_config_v3'
+  PROJECTS: 'jakdang_projects_v7',
+  MEMBERS: 'jakdang_members_v7',
+  AWARDS: 'jakdang_awards_v7',
+  ACTIVITIES: 'jakdang_activities_v7',
+  SITE_CONFIG: 'jakdang_config_v7'
 };
 
 // --- DATA SERVICE (ASYNC) ---
@@ -215,7 +243,21 @@ export const DataService = {
   getProjects: () => fetchData<Project[]>('projects', KEYS.PROJECTS, INITIAL_PROJECTS),
   saveProjects: (data: Project[]) => saveData('projects', KEYS.PROJECTS, data),
   
-  getMembers: () => fetchData<Member[]>('members', KEYS.MEMBERS, INITIAL_MEMBERS),
+  // Custom getMembers to check for stale schema
+  getMembers: async () => {
+    const members = await fetchData<Member[]>('members', KEYS.MEMBERS, INITIAL_MEMBERS);
+    // Safety Check: If DB returns data with old schema (e.g. 'Leadership' or 'Member' roles), fallback to INITIAL_MEMBERS
+    // This fixes the issue where an old DB state prevents the new OB/YB list from showing.
+    const hasStaleRoles = members.some((m: any) => m.role === 'Leadership' || m.role === 'Member' || m.role === 'Alumni');
+    
+    if (hasStaleRoles) {
+      console.warn("Detected stale member data from DB. Falling back to Initial List.");
+      return INITIAL_MEMBERS;
+    }
+    
+    return members;
+  },
+  
   saveMembers: (data: Member[]) => saveData('members', KEYS.MEMBERS, data),
   
   getAwards: () => fetchData<AwardItem[]>('awards', KEYS.AWARDS, INITIAL_AWARDS),
