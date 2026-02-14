@@ -85,16 +85,18 @@ export const Home: React.FC<HomeProps> = ({ featuredProjects, onNavigate, config
         <div className="absolute inset-0 z-10 flex flex-col pointer-events-none">
            <div className="absolute inset-0 bg-black/50"></div>
            
-           <div className="max-w-[1920px] mx-auto w-full px-6 md:px-12 relative z-20 h-full flex flex-col items-start justify-end md:justify-center pb-24 md:pb-0">
+           {/* Position Adjusted: justify-end with reduced padding-bottom to move text to the bottom edge */}
+           <div className="max-w-[1920px] mx-auto w-full px-6 md:px-12 relative z-20 h-full flex flex-col items-start justify-end pb-8 md:pb-12">
               <div className="w-full text-left">
-                <h1 className="text-[15vw] md:text-[5.5vw] leading-[0.9] font-bold tracking-tighter text-white select-none drop-shadow-2xl opacity-100 mb-6 md:mb-8">
+                {/* Font size reduced slightly (18vw->15vw, 8vw->7vw) */}
+                <h1 className="text-[15vw] md:text-[7vw] leading-[0.9] font-bold tracking-tight text-white select-none drop-shadow-2xl opacity-100 mb-6 md:mb-8">
                   {titleWords.map((word, i) => (
                     <span key={i} className="block">{word}</span>
                   ))}
                 </h1>
                 
                 <div className="w-full md:max-w-xl">
-                   <p className="text-[3.2vw] md:text-lg text-white font-light leading-relaxed opacity-90 drop-shadow-md whitespace-nowrap">
+                   <p className="text-[3.5vw] md:text-xl text-white font-light leading-relaxed opacity-90 drop-shadow-md whitespace-nowrap">
                      {config.homeHeroDescription}
                    </p>
                 </div>

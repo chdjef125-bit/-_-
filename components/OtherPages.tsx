@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Member, AwardItem, ActivityLog, SiteConfig, PageView } from '../types';
+import { Member, AwardItem, SiteConfig, PageView } from '../types';
 import { FileText, MapPin, Mail, Instagram, ExternalLink, Calendar, BookOpen, Users, Send } from 'lucide-react';
 
 /* --- MEMBERS PAGE --- */
@@ -95,38 +95,6 @@ export const Awards: React.FC<{ items: AwardItem[] }> = ({ items }) => {
     </div>
   );
 };
-
-/* --- ACTIVITY PAGE --- */
-export const Activity: React.FC<{ items: ActivityLog[] }> = ({ items }) => (
-  <div className="max-w-[1920px] mx-auto px-6 md:px-12">
-    <h1 className="text-6xl md:text-8xl font-bold text-white mb-12 tracking-tighter">ACTIVITIES</h1>
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-px bg-neutral-900 border border-neutral-900 pb-24">
-       {items.map(item => (
-        <div key={item.id} className="bg-black p-8 md:p-12 hover:bg-neutral-900 transition-colors group">
-          <div className="flex justify-between items-start mb-6">
-            <div className="flex items-center gap-2 text-white font-mono text-xl">{item.date}</div>
-            <span className="text-xs font-mono border border-neutral-800 text-neutral-500 px-2 py-1 uppercase">{item.type}</span>
-          </div>
-          <h3 className="text-3xl font-bold text-white mb-4">{item.title}</h3>
-          <p className="text-neutral-500 mb-8 max-w-md">{item.description}</p>
-          <div className="aspect-video bg-neutral-900 grayscale group-hover:grayscale-0 transition-all overflow-hidden">
-             {item.imageUrl ? (
-               <img src={item.imageUrl} className="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity" alt={item.title} />
-             ) : (
-               <div className="w-full h-full flex items-center justify-center text-neutral-800">NO VISUAL DATA</div>
-             )}
-          </div>
-        </div>
-       ))}
-       {items.length === 0 && (
-         <div className="col-span-2 text-center py-32 text-neutral-700 font-mono bg-black">
-           NO ACTIVITIES LOGGED
-         </div>
-       )}
-    </div>
-  </div>
-);
-
 
 /* --- CONTACT PAGE --- */
 export const Contact: React.FC<{ config: SiteConfig; onNavigate: (page: PageView) => void }> = ({ config, onNavigate }) => {

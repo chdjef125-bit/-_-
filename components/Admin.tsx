@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
-import { Project, Member, ActivityLog, AwardItem, SiteConfig } from '../types';
-import { Trash2, Plus, Lock, LogOut, Layout, Users, Calendar, Archive, FileText, Settings, Upload, Image as ImageIcon, Link, Download, Save, AlertTriangle, Code, Globe, FileJson, RefreshCw, Database, CloudLightning, Grid, X, ArrowUp, ArrowDown, ChevronRight, Edit2, RotateCcw } from 'lucide-react';
+import { Project, Member, AwardItem, SiteConfig } from '../types';
+import { Trash2, Plus, Lock, LogOut, Layout, Users, Archive, FileText, Settings, Upload, Image as ImageIcon, Link, Download, Save, AlertTriangle, Code, Globe, FileJson, RefreshCw, Database, CloudLightning, Grid, X, ArrowUp, ArrowDown, ChevronRight, Edit2, RotateCcw } from 'lucide-react';
 import { DataService } from '../services/store';
 
 interface AdminProps {
@@ -8,8 +8,6 @@ interface AdminProps {
   setProjects: (p: Project[]) => void;
   members: Member[];
   setMembers: (m: Member[]) => void;
-  activities: ActivityLog[];
-  setActivities: (a: ActivityLog[]) => void;
   awards: AwardItem[];
   setAwards: (a: AwardItem[]) => void;
   config: SiteConfig;
@@ -17,12 +15,11 @@ interface AdminProps {
   onLogout: () => void;
 }
 
-type TabType = 'projects' | 'members' | 'activities' | 'award' | 'config' | 'system';
+type TabType = 'projects' | 'members' | 'award' | 'config' | 'system';
 
 export const Admin: React.FC<AdminProps> = ({ 
   projects, setProjects, 
   members, setMembers, 
-  activities, setActivities, 
   awards, setAwards, 
   config, setConfig,
   onLogout 
@@ -41,9 +38,7 @@ export const Admin: React.FC<AdminProps> = ({
   const [newMember, setNewMember] = useState<Partial<Member>>({
     name: '', role: 'YB', philosophy: '', imageUrl: '', order: 0
   });
-  const [newActivity, setNewActivity] = useState<Partial<ActivityLog>>({
-    title: '', date: '2024.01', type: 'Workshop', description: '', imageUrl: ''
-  });
+  
   const [newAward, setNewAward] = useState<Partial<AwardItem>>({
     title: '', type: 'Award', year: '2024', description: ''
   });
@@ -75,7 +70,8 @@ export const Admin: React.FC<AdminProps> = ({
           let width = img.width;
           let height = img.height;
           
-          const MAX_WIDTH = 2560;
+          // Reduced Max Width/Quality to prevent Storage Quota issues
+          const MAX_WIDTH = 1920; 
           if (width > MAX_WIDTH) {
             height = (MAX_WIDTH / width) * height;
             width = MAX_WIDTH;
@@ -86,7 +82,8 @@ export const Admin: React.FC<AdminProps> = ({
           const ctx = canvas.getContext('2d');
           ctx?.drawImage(img, 0, 0, width, height);
 
-          const dataUrl = canvas.toDataURL('image/jpeg', 0.90);
+          // Quality reduced to 0.8
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
           setter(dataUrl);
         };
         img.src = event.target?.result as string;
@@ -121,7 +118,6 @@ export const Admin: React.FC<AdminProps> = ({
       setter(updated);
       safeSave(persister, updated);
       
-      // If we deleted the item currently being edited, reset edit mode
       if (activeTab === 'projects' && editingProjectId === id) {
         resetProjectForm();
       }
@@ -130,7 +126,6 @@ export const Admin: React.FC<AdminProps> = ({
 
   const deleteProject = createDeleteHandler(projects, setProjects, DataService.saveProjects);
   const deleteMember = createDeleteHandler(members, setMembers, DataService.saveMembers);
-  const deleteActivity = createDeleteHandler(activities, setActivities, DataService.saveActivities);
   const deleteAward = createDeleteHandler(awards, setAwards, DataService.saveAwards);
 
   /* --- PROJECT SPECIFIC HANDLERS --- */
@@ -143,7 +138,6 @@ export const Admin: React.FC<AdminProps> = ({
   const handleEditProject = (project: Project) => {
     setNewProject({ ...project });
     setEditingProjectId(project.id);
-    // Scroll to top of form
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -153,12 +147,10 @@ export const Admin: React.FC<AdminProps> = ({
     let updatedProjects: Project[];
     
     if (editingProjectId) {
-      // Update existing
       updatedProjects = projects.map(p => 
         p.id === editingProjectId ? { ...newProject, id: editingProjectId } as Project : p
       );
     } else {
-      // Create new
       const item: Project = { ...newProject as Project, id: DataService.generateId() };
       updatedProjects = [item, ...projects];
     }
@@ -193,15 +185,6 @@ export const Admin: React.FC<AdminProps> = ({
     safeSave(DataService.saveMembers, reorderedMembers);
   };
 
-  const handleAddActivity = (e: React.FormEvent) => {
-    e.preventDefault();
-    const item: ActivityLog = { ...newActivity as ActivityLog, id: DataService.generateId() };
-    const updated = [item, ...activities];
-    setActivities(updated);
-    safeSave(DataService.saveActivities, updated);
-    setNewActivity({ title: '', date: '2024.01', type: 'Workshop', description: '', imageUrl: '' });
-  };
-
   const handleAddAward = (e: React.FormEvent) => {
     e.preventDefault();
     const item: AwardItem = { ...newAward as AwardItem, id: DataService.generateId() };
@@ -233,13 +216,80 @@ export const Admin: React.FC<AdminProps> = ({
     });
   };
 
-  const handleAddGridImage = (e: React.ChangeEvent<HTMLInputElement>) => {
-    handleImageUpload(e, (url) => {
-      const currentImages = config.homeGridImages || [];
-      const newConfig = { ...config, homeGridImages: [url, ...currentImages] };
-      setConfig(newConfig);
-      safeSave(DataService.saveSiteConfig, newConfig);
-    });
+  const handleAddGridImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    // Set saving state to show feedback during processing
+    setIsSaving(true);
+
+    const processFile = (file: File): Promise<string> => {
+      return new Promise((resolve) => {
+        if (file.size > 20 * 1024 * 1024) {
+          console.warn(`File ${file.name} too large.`);
+          resolve('');
+          return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const img = new Image();
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            let width = img.width;
+            let height = img.height;
+            const MAX_WIDTH = 1920; 
+            if (width > MAX_WIDTH) {
+              height = (MAX_WIDTH / width) * height;
+              width = MAX_WIDTH;
+            }
+
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx?.drawImage(img, 0, 0, width, height);
+            
+            // Compressing to 0.8 quality jpeg
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+            resolve(dataUrl);
+          };
+          img.onerror = () => resolve('');
+          img.src = event.target?.result as string;
+        };
+        reader.onerror = () => resolve('');
+        reader.readAsDataURL(file);
+      });
+    };
+
+    try {
+      const promises = Array.from(files).map(processFile);
+      const results = await Promise.all(promises);
+      const validResults = results.filter(url => url.length > 0);
+
+      if (validResults.length > 0) {
+        const currentImages = config.homeGridImages || [];
+        const newConfig = { ...config, homeGridImages: [...validResults, ...currentImages] };
+        setConfig(newConfig);
+        
+        // Save to DB
+        try {
+           await DataService.saveSiteConfig(newConfig);
+        } catch (e: any) {
+           if (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED') {
+             alert("Storage Quota Exceeded! Images might not persist locally.");
+           } else {
+             console.error(e);
+             alert("Failed to save data to database.");
+           }
+        }
+      }
+    } catch (error) {
+       console.error("Error processing images:", error);
+       alert("Error processing images.");
+    } finally {
+       setIsSaving(false);
+       e.target.value = '';
+    }
   };
 
   const removeGridImage = (index: number) => {
@@ -337,7 +387,6 @@ export const Admin: React.FC<AdminProps> = ({
           { id: 'config', icon: Settings, label: 'Site Content' },
           { id: 'projects', icon: Layout, label: 'Projects' },
           { id: 'members', icon: Users, label: 'Members' },
-          { id: 'activities', icon: Calendar, label: 'Activities' },
           { id: 'award', icon: Archive, label: 'Awards' },
           { id: 'system', icon: Database, label: 'Database' },
         ].map(tab => (
@@ -511,47 +560,6 @@ export const Admin: React.FC<AdminProps> = ({
           </>
         )}
 
-        {/* Activities Tab */}
-        {activeTab === 'activities' && (
-          <>
-            <div className="lg:col-span-1 bg-neutral-900 p-6 border border-neutral-800 h-fit shadow-sm">
-              <h3 className="text-sm font-bold text-white mb-4 uppercase tracking-wider flex items-center gap-2"><Plus size={16}/> New Activity</h3>
-              <form onSubmit={handleAddActivity} className="space-y-4">
-                <input placeholder="Title" value={newActivity.title} onChange={e => setNewActivity({...newActivity, title: e.target.value})} className="w-full bg-black border border-neutral-700 px-3 py-2 text-white outline-none focus:border-jakdang-accent" required />
-                <div className="grid grid-cols-2 gap-2">
-                  <input placeholder="Date (YYYY.MM)" value={newActivity.date} onChange={e => setNewActivity({...newActivity, date: e.target.value})} className="bg-black border border-neutral-700 text-white px-3 py-2 outline-none" />
-                  <select value={newActivity.type} onChange={e => setNewActivity({...newActivity, type: e.target.value as any})} className="bg-black border border-neutral-700 text-white px-3 py-2 outline-none">
-                    <option value="Workshop">Workshop</option><option value="Exhibition">Exhibition</option><option value="MT">MT</option><option value="Study">Study</option><option value="Field Trip">Field Trip</option>
-                  </select>
-                </div>
-                <textarea placeholder="Description" value={newActivity.description} onChange={e => setNewActivity({...newActivity, description: e.target.value})} className="w-full bg-black border border-neutral-700 px-3 py-2 text-white outline-none h-20" />
-                <div>
-                   <label className="block text-xs text-neutral-500 mb-1">Activity Image</label>
-                   <div className="relative">
-                     <input type="file" accept="image/*" onChange={e => handleImageUpload(e, url => setNewActivity({...newActivity, imageUrl: url}))} className="hidden" id="act-img" />
-                     <label htmlFor="act-img" className="flex items-center justify-center w-full h-24 border border-dashed border-neutral-700 hover:border-jakdang-accent cursor-pointer text-neutral-500 hover:text-white transition-colors bg-black">
-                       {newActivity.imageUrl ? <img src={newActivity.imageUrl} className="h-full w-full object-cover" alt="Preview"/> : <div className="flex flex-col items-center"><Upload size={20}/> <span className="text-xs mt-1">Upload Image (High Quality)</span></div>}
-                     </label>
-                   </div>
-                   <div className="mt-2 flex items-center gap-2">
-                     <Link size={12} className="text-neutral-500" />
-                     <input placeholder="Or paste Image URL" value={newActivity.imageUrl} onChange={e => setNewActivity({...newActivity, imageUrl: e.target.value})} className="bg-transparent border-b border-neutral-700 text-xs w-full py-1 text-white outline-none focus:border-jakdang-accent" />
-                   </div>
-                </div>
-                <button type="submit" className="w-full bg-white text-black font-bold py-2 hover:bg-jakdang-accent hover:text-white transition-colors shadow-lg">ADD TO DATABASE</button>
-              </form>
-            </div>
-            <div className="lg:col-span-2 space-y-2">
-              {activities.map(a => (
-                <div key={a.id} className="flex justify-between items-center p-4 border border-neutral-800 bg-neutral-900 hover:shadow-md transition-shadow">
-                  <div><h4 className="font-bold text-white">{a.title}</h4><p className="text-xs text-neutral-500">{a.date} | {a.type}</p></div>
-                  <button onClick={() => deleteActivity(a.id)} className="text-neutral-600 hover:text-red-500"><Trash2 size={18}/></button>
-                </div>
-              ))}
-            </div>
-          </>
-        )}
-
         {/* Awards Tab */}
         {activeTab === 'award' && (
           <>
@@ -617,10 +625,10 @@ export const Admin: React.FC<AdminProps> = ({
                       ))}
                       {/* Add Button */}
                       <div className="aspect-square relative">
-                        <input type="file" accept="image/*" onChange={handleAddGridImage} className="hidden" id="grid-add" />
+                        <input type="file" accept="image/*" multiple onChange={handleAddGridImage} className="hidden" id="grid-add" />
                         <label htmlFor="grid-add" className="flex flex-col items-center justify-center w-full h-full border border-dashed border-neutral-700 hover:border-jakdang-accent cursor-pointer text-neutral-500 hover:text-white transition-colors bg-black">
                           <Plus size={20} />
-                          <span className="text-[10px] mt-1">Add</span>
+                          <span className="text-[10px] mt-1">Add (Multi)</span>
                         </label>
                       </div>
                     </div>

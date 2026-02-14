@@ -13,10 +13,9 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, onNavigat
 
   const navItems: { label: string; value: PageView }[] = [
     { label: 'Home', value: 'home' },
-    // About page removed
     { label: 'Members', value: 'members' },
-    { label: 'Works', value: 'works' },
-    { label: 'Activity', value: 'activity' },
+    { label: 'Works & Studies', value: 'works' },
+    // Activity removed
     { label: 'Award', value: 'award' },
     { label: 'Contact', value: 'contact' },
   ];

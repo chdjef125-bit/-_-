@@ -1,5 +1,5 @@
 
-export type PageView = 'home' | 'members' | 'works' | 'activity' | 'award' | 'contact' | 'admin';
+export type PageView = 'home' | 'members' | 'works' | 'award' | 'contact' | 'admin';
 
 export interface SiteConfig {
   homeHeroTitle: string;
@@ -39,14 +39,7 @@ export interface Member {
   order: number; // For manual ordering
 }
 
-export interface ActivityLog {
-  id: string;
-  title: string;
-  date: string; // e.g., "2024.03"
-  type: 'Workshop' | 'Exhibition' | 'MT' | 'Study' | 'Field Trip';
-  description: string;
-  imageUrl?: string;
-}
+// ActivityLog interface removed
 
 export interface AwardItem {
   id: string;

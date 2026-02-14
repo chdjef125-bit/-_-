@@ -3,8 +3,8 @@ import { Layout } from './components/Layout';
 import { Home } from './components/Home';
 import { Works } from './components/Works';
 import { Admin } from './components/Admin';
-import { Members, Awards, Activity, Contact } from './components/OtherPages';
-import { PageView, Project, Member, AwardItem, ActivityLog, SiteConfig } from './types';
+import { Members, Awards, Contact } from './components/OtherPages';
+import { PageView, Project, Member, AwardItem, SiteConfig } from './types';
 import { DataService } from './services/store';
 
 // Splash Screen Component
@@ -56,7 +56,6 @@ const App: React.FC = () => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
   const [awards, setAwards] = useState<AwardItem[]>([]);
-  const [activities, setActivities] = useState<ActivityLog[]>([]);
   const [siteConfig, setSiteConfig] = useState<SiteConfig>({
     homeHeroTitle: "", homeHeroSubtitle: "", homeHeroDescription: "", homeHeroImageUrl: "", homeGridImages: [],
     aboutDefinition: "", contactRecruitText: "", contactCollabText: ""
@@ -66,18 +65,16 @@ const App: React.FC = () => {
   useEffect(() => {
     const loadAllData = async () => {
       try {
-        const [p, m, a, act, conf] = await Promise.all([
+        const [p, m, a, conf] = await Promise.all([
           DataService.getProjects(),
           DataService.getMembers(),
           DataService.getAwards(),
-          DataService.getActivities(),
           DataService.getSiteConfig()
         ]);
 
         setProjects(p);
         setMembers(m);
         setAwards(a);
-        setActivities(act);
         setSiteConfig(conf);
       } catch (error) {
         console.error("Failed to load data", error);
@@ -108,9 +105,6 @@ const App: React.FC = () => {
         return <Members members={members} />;
       case 'works':
         return <Works projects={projects} />;
-      // Process route removed
-      case 'activity':
-        return <Activity items={activities} />;
       case 'award':
         return <Awards items={awards} />;
       case 'contact':
@@ -120,7 +114,6 @@ const App: React.FC = () => {
           <Admin 
             projects={projects} setProjects={setProjects}
             members={members} setMembers={setMembers}
-            activities={activities} setActivities={setActivities}
             awards={awards} setAwards={setAwards}
             config={siteConfig} setConfig={setSiteConfig}
             onLogout={() => setCurrentPage('home')} 

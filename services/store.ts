@@ -1,6 +1,6 @@
-import { Project, Member, ActivityLog, AwardItem, SiteConfig } from '../types';
+import { Project, Member, AwardItem, SiteConfig } from '../types';
 import { initializeApp } from 'firebase/app';
-import { getFirestore, collection, getDocs, setDoc, doc, getDoc } from 'firebase/firestore';
+import { getFirestore, collection, getDocs, setDoc, doc, getDoc, deleteDoc } from 'firebase/firestore';
 
 // --- FIREBASE CONFIGURATION ---
 const firebaseConfig = {
@@ -59,8 +59,6 @@ const INITIAL_MEMBERS: Member[] = [
   ...obNames.map((name, i) => createMember(name, 'OB', i)),
   ...ybNames.map((name, i) => createMember(name, 'YB', i + 100))
 ];
-
-const INITIAL_ACTIVITIES: ActivityLog[] = [];
 
 const INITIAL_AWARDS: AwardItem[] = [
   // 2024
@@ -129,22 +127,33 @@ const INITIAL_SITE_CONFIG: SiteConfig = {
   homeHeroDescription: "건축을 작당합니다. 끊임없이 발전을 모의하는 설계집단, 작당입니다.",
   homeHeroImageUrl: "https://images.unsplash.com/photo-1577495508048-b635879837f1?q=80&w=2070&auto=format&fit=crop", 
   homeGridImages: [
-    "https://images.unsplash.com/photo-1517581177697-a533188a2072?q=80&w=500&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1503387762-592deb58ef4e?q=80&w=500&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1487958449943-2429e8be8625?q=80&w=500&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1544531586-fde5298cdd40?q=80&w=500&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1455390582262-044cdead277a?q=80&w=500&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1479839672679-a46483c0e7c8?q=80&w=500&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1497366216548-37526070297c?q=80&w=500&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1464938050520-ef2270bb8ce8?q=80&w=500&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1504917595217-d4dc5ebe6122?q=80&w=500&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1517581177697-a533188a2072?q=80&w=500&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1503387762-592deb58ef4e?q=80&w=500&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1487958449943-2429e8be8625?q=80&w=500&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1544531586-fde5298cdd40?q=80&w=500&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1455390582262-044cdead277a?q=80&w=500&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1479839672679-a46483c0e7c8?q=80&w=500&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1497366216548-37526070297c?q=80&w=500&auto=format&fit=crop",
+    // Sketches and Process
+    "https://images.unsplash.com/photo-1517581177697-a533188a2072?q=80&w=600&auto=format&fit=crop", // Sketch
+    "https://images.unsplash.com/photo-1629906649712-b54c86807986?q=80&w=600&auto=format&fit=crop", // Hand drawing
+    "https://images.unsplash.com/photo-1573229641774-72213b28b783?q=80&w=600&auto=format&fit=crop", // Plan review
+    "https://images.unsplash.com/photo-1564593452288-66444aa952a1?q=80&w=600&auto=format&fit=crop", // Blueprints
+    "https://images.unsplash.com/photo-1633519363065-276602c38218?q=80&w=600&auto=format&fit=crop", // Trace paper
+
+    // Models
+    "https://images.unsplash.com/photo-1503387762-592deb58ef4e?q=80&w=600&auto=format&fit=crop", // Model
+    "https://images.unsplash.com/photo-1487958449943-2429e8be8625?q=80&w=600&auto=format&fit=crop", // Model detail
+    "https://images.unsplash.com/photo-1558446296-6b2c2864ef8b?q=80&w=600&auto=format&fit=crop", // Concrete model
+    "https://images.unsplash.com/photo-1594895054174-8b8374828135?q=80&w=600&auto=format&fit=crop", // Wood model
+    
+    // Studio Life & Team
+    "https://images.unsplash.com/photo-1544531586-fde5298cdd40?q=80&w=600&auto=format&fit=crop", // Studio
+    "https://images.unsplash.com/photo-1523240795612-9a054b0db644?q=80&w=600&auto=format&fit=crop", // Students meeting
+    "https://images.unsplash.com/photo-1517048676732-d65bc937f952?q=80&w=600&auto=format&fit=crop", // Discussion
+    "https://images.unsplash.com/photo-1531482615713-2afd69097998?q=80&w=600&auto=format&fit=crop", // Working together
+    "https://images.unsplash.com/photo-1606857521015-7f9fcf423740?q=80&w=600&auto=format&fit=crop", // Studio desk
+    "https://images.unsplash.com/photo-1593642702821-c8da6771f0c6?q=80&w=600&auto=format&fit=crop", // Late night work
+    
+    // Abstract & Vibe
+    "https://images.unsplash.com/photo-1455390582262-044cdead277a?q=80&w=600&auto=format&fit=crop", // Concrete texture
+    "https://images.unsplash.com/photo-1479839672679-a46483c0e7c8?q=80&w=600&auto=format&fit=crop", // Building structure
+    "https://images.unsplash.com/photo-1497366216548-37526070297c?q=80&w=600&auto=format&fit=crop", // Corporate/Clean
+    "https://images.unsplash.com/photo-1464938050520-ef2270bb8ce8?q=80&w=600&auto=format&fit=crop", // Geometry
+    "https://images.unsplash.com/photo-1504917595217-d4dc5ebe6122?q=80&w=600&auto=format&fit=crop", // Light and Shadow
   ],
   homeManifestoTitle: "Conspire",
   homeManifestoImageUrl: "https://images.unsplash.com/photo-1586075010923-2dd4570fb338?q=80&w=1000&auto=format&fit=crop", // Pencil Sketch
@@ -157,12 +166,11 @@ const INITIAL_SITE_CONFIG: SiteConfig = {
 };
 
 // LocalStorage Keys (Fallback)
-// Updated to '_v7' to force clear cache/members due to structure change
 const KEYS = {
   PROJECTS: 'jakdang_projects_v7',
   MEMBERS: 'jakdang_members_v7',
   AWARDS: 'jakdang_awards_v7',
-  ACTIVITIES: 'jakdang_activities_v7',
+  ACTIVITIES: 'jakdang_activities_v7', // Deprecated but kept for key stability if needed
   SITE_CONFIG: 'jakdang_config_v7'
 };
 
@@ -190,7 +198,6 @@ const fetchData = async <T>(collectionName: string, localKey: string, initial: T
          const docRef = doc(db, 'settings', 'siteConfig');
          const docSnap = await getDoc(docRef);
          if (docSnap.exists()) {
-            // For config, merge with initial to ensure new fields exist even if DB is old
             return { ...initial, ...docSnap.data() } as T;
          }
          return initial;
@@ -207,29 +214,50 @@ const fetchData = async <T>(collectionName: string, localKey: string, initial: T
       return loadLocal(localKey, initial);
     }
   } else {
+    // Simulate async for local
     return new Promise(resolve => setTimeout(() => resolve(loadLocal(localKey, initial)), 100));
   }
 };
 
 // Generic Saver
 const saveData = async (collectionName: string, localKey: string, data: any) => {
-  saveLocal(localKey, data);
+  // 1. Try Saving to LocalStorage (Safely)
+  try {
+    saveLocal(localKey, data);
+  } catch (e) {
+    console.warn(`LocalStorage quota exceeded for ${localKey}. Skipping local cache update.`);
+  }
 
+  // 2. Sync to Firebase
   if (isFirebaseConfigured && db) {
     try {
       if (collectionName === 'config') {
         await setDoc(doc(db, 'settings', 'siteConfig'), data);
       } else {
+        // Full Sync: Create/Update items in list, Delete items NOT in list.
         const items = Array.isArray(data) ? data : [];
-        const batchPromises = items.map(item => {
+        const newIds = new Set(items.map((item: any) => item.id));
+
+        const querySnapshot = await getDocs(collection(db, collectionName));
+        const deletePromises: Promise<void>[] = [];
+
+        querySnapshot.forEach((docSnap) => {
+          if (!newIds.has(docSnap.id)) {
+             console.log(`Deleting ${docSnap.id} from ${collectionName}`);
+             deletePromises.push(deleteDoc(doc(db, collectionName, docSnap.id)));
+          }
+        });
+        await Promise.all(deletePromises);
+
+        const setPromises = items.map(item => {
            if(item.id) {
              return setDoc(doc(db, collectionName, item.id), item);
            }
            return Promise.resolve();
         });
-        await Promise.all(batchPromises);
+        await Promise.all(setPromises);
       }
-      console.log(`Saved ${collectionName} to Cloud.`);
+      console.log(`Synced ${collectionName} to Cloud.`);
     } catch (e) {
       console.error(`Error saving ${collectionName}:`, e);
       throw e;
@@ -246,8 +274,6 @@ export const DataService = {
   // Custom getMembers to check for stale schema
   getMembers: async () => {
     const members = await fetchData<Member[]>('members', KEYS.MEMBERS, INITIAL_MEMBERS);
-    // Safety Check: If DB returns data with old schema (e.g. 'Leadership' or 'Member' roles), fallback to INITIAL_MEMBERS
-    // This fixes the issue where an old DB state prevents the new OB/YB list from showing.
     const hasStaleRoles = members.some((m: any) => m.role === 'Leadership' || m.role === 'Member' || m.role === 'Alumni');
     
     if (hasStaleRoles) {
@@ -263,23 +289,20 @@ export const DataService = {
   getAwards: () => fetchData<AwardItem[]>('awards', KEYS.AWARDS, INITIAL_AWARDS),
   saveAwards: (data: AwardItem[]) => saveData('awards', KEYS.AWARDS, data),
 
-  getActivities: () => fetchData<ActivityLog[]>('activities', KEYS.ACTIVITIES, INITIAL_ACTIVITIES),
-  saveActivities: (data: ActivityLog[]) => saveData('activities', KEYS.ACTIVITIES, data),
+  // Activity methods removed
 
   getSiteConfig: () => fetchData<SiteConfig>('config', KEYS.SITE_CONFIG, INITIAL_SITE_CONFIG),
   saveSiteConfig: (data: SiteConfig) => saveData('config', KEYS.SITE_CONFIG, data),
   
-  // Utility for ID generation
   generateId: () => Math.random().toString(36).substr(2, 9),
 
-  // Migration Tool
   migrateToCloud: async () => {
     if (!isFirebaseConfigured) throw new Error("Firebase not configured");
     
     await saveData('projects', KEYS.PROJECTS, loadLocal(KEYS.PROJECTS, INITIAL_PROJECTS));
     await saveData('members', KEYS.MEMBERS, loadLocal(KEYS.MEMBERS, INITIAL_MEMBERS));
     await saveData('awards', KEYS.AWARDS, loadLocal(KEYS.AWARDS, INITIAL_AWARDS));
-    await saveData('activities', KEYS.ACTIVITIES, loadLocal(KEYS.ACTIVITIES, INITIAL_ACTIVITIES));
+    // Activity migration removed
     await saveData('config', KEYS.SITE_CONFIG, loadLocal(KEYS.SITE_CONFIG, INITIAL_SITE_CONFIG));
     
     return true;
