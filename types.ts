@@ -1,5 +1,5 @@
 
-export type PageView = 'home' | 'members' | 'works' | 'activity' | 'archive' | 'contact' | 'admin';
+export type PageView = 'home' | 'members' | 'works' | 'activity' | 'award' | 'contact' | 'admin';
 
 export interface SiteConfig {
   homeHeroTitle: string;
@@ -47,11 +47,10 @@ export interface ActivityLog {
   imageUrl?: string;
 }
 
-export interface ArchiveItem {
+export interface AwardItem {
   id: string;
   title: string;
   type: 'Award' | 'Publication' | 'Exhibition';
   year: string;
   description: string;
-  link?: string;
 }

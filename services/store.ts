@@ -1,4 +1,4 @@
-import { Project, Member, ActivityLog, ArchiveItem, SiteConfig } from '../types';
+import { Project, Member, ActivityLog, AwardItem, SiteConfig } from '../types';
 import { initializeApp } from 'firebase/app';
 import { getFirestore, collection, getDocs, setDoc, doc, getDoc } from 'firebase/firestore';
 
@@ -32,8 +32,68 @@ if (isFirebaseConfigured) {
 // --- INITIAL MOCK DATA (Fallback) ---
 const INITIAL_PROJECTS: Project[] = [];
 const INITIAL_MEMBERS: Member[] = [];
-const INITIAL_ARCHIVE: ArchiveItem[] = [];
 const INITIAL_ACTIVITIES: ActivityLog[] = [];
+
+const INITIAL_AWARDS: AwardItem[] = [
+  // 2024
+  { id: 'arc_2024_1', year: '2024', type: 'Award', title: '한국건축문화대전', description: '우수상' },
+  { id: 'arc_2024_2', year: '2024', type: 'Award', title: '경북건축대전', description: '우수상' },
+  { id: 'arc_2024_3', year: '2024', type: 'Award', title: '경남건축대전', description: '은상' },
+  { id: 'arc_2024_4', year: '2024', type: 'Award', title: '부산국제건축문화제', description: '특선' },
+  { id: 'arc_2024_5', year: '2024', type: 'Award', title: '도코모모', description: '장려상' },
+  { id: 'arc_2024_6', year: '2024', type: 'Award', title: 'KT&G 파빌리온', description: '장려' },
+  { id: 'arc_2024_7', year: '2024', type: 'Award', title: '울산건축대전', description: '입선' },
+
+  // 2023
+  { id: 'arc_2023_1', year: '2023', type: 'Award', title: '근대도시건축디자인공모전', description: '최우수상' },
+  { id: 'arc_2023_2', year: '2023', type: 'Award', title: 'KT&G 상상 블루 파빌리온', description: '우수상' },
+  { id: 'arc_2023_3', year: '2023', type: 'Award', title: '제27회 LH 주택 건축대전', description: '장려상' },
+  { id: 'arc_2023_4', year: '2023', type: 'Award', title: '한국공간디자인', description: '특선' },
+  { id: 'arc_2023_5', year: '2023', type: 'Award', title: '부산국제건축대전', description: '입선' },
+
+  // 2022
+  { id: 'arc_2022_1', year: '2022', type: 'Award', title: '한국건축문화대상', description: '최우수상' },
+  { id: 'arc_2022_2', year: '2022', type: 'Award', title: '경기건축대전', description: '금상' },
+  { id: 'arc_2022_3', year: '2022', type: 'Award', title: '경기도건축문화상', description: '특별상' },
+  { id: 'arc_2022_4', year: '2022', type: 'Award', title: '대구 경부선 철도부지 아이디어 공모전', description: '장려상' },
+  { id: 'arc_2022_5', year: '2022', type: 'Award', title: '부산국제건축대전', description: '장려상' },
+  { id: 'arc_2022_6', year: '2022', type: 'Award', title: '부산국제도시사진전', description: 'Honorable Mention' },
+  { id: 'arc_2022_7', year: '2022', type: 'Award', title: '부산국제건축대전', description: '특선' },
+  { id: 'arc_2022_8', year: '2022', type: 'Award', title: '대한민국목조건축대전', description: '입선' },
+  { id: 'arc_2022_9', year: '2022', type: 'Award', title: '근대도시건축디자인공모전', description: '입선' },
+  { id: 'arc_2022_10', year: '2022', type: 'Award', title: '경기건축대전', description: '입선' },
+  { id: 'arc_2022_11', year: '2022', type: 'Award', title: '경기도건축문화상', description: '입선' },
+
+  // 2021
+  { id: 'arc_2021_1', year: '2021', type: 'Award', title: '근대도시건축디자인공모전', description: '대상' },
+  { id: 'arc_2021_2', year: '2021', type: 'Award', title: '부산국제건축디자인워크샵', description: '대상' },
+  { id: 'arc_2021_3', year: '2021', type: 'Award', title: '부산국제건축대전', description: '최우수상' },
+  { id: 'arc_2021_4', year: '2021', type: 'Award', title: '화성시 동탄도서관 현상설계', description: '2등' },
+  { id: 'arc_2021_5', year: '2021', type: 'Award', title: '롯데자이언츠 사직구장 직원오피스 현상설계', description: '2등' },
+  { id: 'arc_2021_6', year: '2021', type: 'Award', title: '부산국제건축대전', description: '장려상' },
+  { id: 'arc_2021_7', year: '2021', type: 'Award', title: 'Tomorrow busan 메가시티 아이디어 공모전', description: '장려상' },
+  { id: 'arc_2021_8', year: '2021', type: 'Award', title: '한국리모델링건축대전', description: '가작' },
+  { id: 'arc_2021_9', year: '2021', type: 'Award', title: '계룡장학재단 건축부문', description: '입선' },
+  { id: 'arc_2021_10', year: '2021', type: 'Award', title: '한국농촌건축대전', description: '입선' },
+  { id: 'arc_2021_11', year: '2021', type: 'Award', title: '차세대 문화공간 공모전', description: '입선' },
+  { id: 'arc_2021_12', year: '2021', type: 'Award', title: '통합놀이터 공모전', description: '입선' },
+
+  // 2020
+  { id: 'arc_2020_1', year: '2020', type: 'Award', title: '한국건축문화대상', description: '최우수상' },
+  { id: 'arc_2020_2', year: '2020', type: 'Award', title: 'BCOME_지역공동체형 주거모델제안 국제공모전', description: '3등' },
+  { id: 'arc_2020_3', year: '2020', type: 'Award', title: '경기건축대전', description: '특선' },
+  { id: 'arc_2020_4', year: '2020', type: 'Award', title: '남북교류와 미래국토비전 작품공모전', description: '입선' },
+  { id: 'arc_2020_5', year: '2020', type: 'Award', title: '부산국제건축대전', description: '입선' },
+  { id: 'arc_2020_6', year: '2020', type: 'Award', title: '시흥건축문화대상', description: '입선' },
+
+  // 2019
+  { id: 'arc_2019_1', year: '2019', type: 'Award', title: '충남 3.1운동 백년의집 다목적홀 공모전', description: '최우수상' },
+  { id: 'arc_2019_2', year: '2019', type: 'Award', title: 'SH 대학생 VE경진대회', description: '장려상' },
+  { id: 'arc_2019_3', year: '2019', type: 'Award', title: '울산건축대전 시니어', description: '입선' },
+
+  // 2017
+  { id: 'arc_2017_1', year: '2017', type: 'Award', title: 'KT&G 부산 도시재생 공모전', description: '장려상' },
+];
 
 const INITIAL_SITE_CONFIG: SiteConfig = {
   homeHeroTitle: "We don't just design.",
@@ -73,7 +133,7 @@ const INITIAL_SITE_CONFIG: SiteConfig = {
 const KEYS = {
   PROJECTS: 'jakdang_projects_v3',
   MEMBERS: 'jakdang_members_v3',
-  ARCHIVE: 'jakdang_archive_v3',
+  AWARDS: 'jakdang_awards_v3',
   ACTIVITIES: 'jakdang_activities_v3',
   SITE_CONFIG: 'jakdang_config_v3'
 };
@@ -158,8 +218,8 @@ export const DataService = {
   getMembers: () => fetchData<Member[]>('members', KEYS.MEMBERS, INITIAL_MEMBERS),
   saveMembers: (data: Member[]) => saveData('members', KEYS.MEMBERS, data),
   
-  getArchive: () => fetchData<ArchiveItem[]>('archive', KEYS.ARCHIVE, INITIAL_ARCHIVE),
-  saveArchive: (data: ArchiveItem[]) => saveData('archive', KEYS.ARCHIVE, data),
+  getAwards: () => fetchData<AwardItem[]>('awards', KEYS.AWARDS, INITIAL_AWARDS),
+  saveAwards: (data: AwardItem[]) => saveData('awards', KEYS.AWARDS, data),
 
   getActivities: () => fetchData<ActivityLog[]>('activities', KEYS.ACTIVITIES, INITIAL_ACTIVITIES),
   saveActivities: (data: ActivityLog[]) => saveData('activities', KEYS.ACTIVITIES, data),
@@ -176,7 +236,7 @@ export const DataService = {
     
     await saveData('projects', KEYS.PROJECTS, loadLocal(KEYS.PROJECTS, INITIAL_PROJECTS));
     await saveData('members', KEYS.MEMBERS, loadLocal(KEYS.MEMBERS, INITIAL_MEMBERS));
-    await saveData('archive', KEYS.ARCHIVE, loadLocal(KEYS.ARCHIVE, INITIAL_ARCHIVE));
+    await saveData('awards', KEYS.AWARDS, loadLocal(KEYS.AWARDS, INITIAL_AWARDS));
     await saveData('activities', KEYS.ACTIVITIES, loadLocal(KEYS.ACTIVITIES, INITIAL_ACTIVITIES));
     await saveData('config', KEYS.SITE_CONFIG, loadLocal(KEYS.SITE_CONFIG, INITIAL_SITE_CONFIG));
     

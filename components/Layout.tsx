@@ -17,7 +17,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, onNavigat
     { label: 'Members', value: 'members' },
     { label: 'Works', value: 'works' },
     { label: 'Activity', value: 'activity' },
-    { label: 'Archive', value: 'archive' },
+    { label: 'Award', value: 'award' },
     { label: 'Contact', value: 'contact' },
   ];
 

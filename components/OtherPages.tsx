@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Member, ArchiveItem, ActivityLog, SiteConfig, PageView } from '../types';
+import { Member, AwardItem, ActivityLog, SiteConfig, PageView } from '../types';
 import { FileText, MapPin, Mail, Instagram, ExternalLink, Calendar, BookOpen, Users, Send } from 'lucide-react';
 
 /* --- MEMBERS PAGE --- */
@@ -66,11 +66,11 @@ export const Members: React.FC<{ members: Member[] }> = ({ members }) => {
   );
 };
 
-/* --- ARCHIVE PAGE --- */
-export const Archive: React.FC<{ items: ArchiveItem[] }> = ({ items }) => (
+/* --- AWARDS PAGE (Formerly Archive) --- */
+export const Awards: React.FC<{ items: AwardItem[] }> = ({ items }) => (
   <div className="max-w-[1920px] mx-auto px-6 md:px-12">
     <div className="flex items-end justify-between border-b border-neutral-800 pb-8 mb-8">
-      <h1 className="text-6xl md:text-8xl font-bold text-white tracking-tighter">ARCHIVE</h1>
+      <h1 className="text-6xl md:text-8xl font-bold text-white tracking-tighter">AWARD</h1>
       <span className="font-mono text-sm text-neutral-500 font-bold mb-4">{items.length} RECORDS</span>
     </div>
 
@@ -82,7 +82,6 @@ export const Archive: React.FC<{ items: ArchiveItem[] }> = ({ items }) => (
             <th className="py-4 font-normal w-32">Type</th>
             <th className="py-4 font-normal">Title</th>
             <th className="py-4 font-normal hidden md:table-cell">Description</th>
-            <th className="py-4 font-normal text-right w-24">Link</th>
           </tr>
         </thead>
         <tbody className="text-sm">
@@ -98,16 +97,11 @@ export const Archive: React.FC<{ items: ArchiveItem[] }> = ({ items }) => (
               </td>
               <td className="py-6 text-xl font-bold text-white group-hover:translate-x-2 transition-transform duration-300">{item.title}</td>
               <td className="py-6 text-neutral-500 max-w-md hidden md:table-cell">{item.description}</td>
-              <td className="py-6 text-right">
-                <button className="text-neutral-600 hover:text-white transition-colors">
-                  <ExternalLink size={20} />
-                </button>
-              </td>
             </tr>
           ))}
           {items.length === 0 && (
              <tr>
-               <td colSpan={5} className="py-32 text-center text-neutral-700 font-mono uppercase tracking-widest">No records found</td>
+               <td colSpan={4} className="py-32 text-center text-neutral-700 font-mono uppercase tracking-widest">No records found</td>
              </tr>
           )}
         </tbody>

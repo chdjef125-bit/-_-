@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Project, Member, ActivityLog, ArchiveItem, SiteConfig } from '../types';
+import { Project, Member, ActivityLog, AwardItem, SiteConfig } from '../types';
 import { Trash2, Plus, Lock, LogOut, Layout, Users, Calendar, Archive, FileText, Settings, Upload, Image as ImageIcon, Link, Download, Save, AlertTriangle, Code, Globe, FileJson, RefreshCw, Database, CloudLightning, Grid, X } from 'lucide-react';
 import { DataService } from '../services/store';
 
@@ -10,20 +10,20 @@ interface AdminProps {
   setMembers: (m: Member[]) => void;
   activities: ActivityLog[];
   setActivities: (a: ActivityLog[]) => void;
-  archive: ArchiveItem[];
-  setArchive: (a: ArchiveItem[]) => void;
+  awards: AwardItem[];
+  setAwards: (a: AwardItem[]) => void;
   config: SiteConfig;
   setConfig: (c: SiteConfig) => void;
   onLogout: () => void;
 }
 
-type TabType = 'projects' | 'members' | 'activities' | 'archive' | 'config' | 'system';
+type TabType = 'projects' | 'members' | 'activities' | 'award' | 'config' | 'system';
 
 export const Admin: React.FC<AdminProps> = ({ 
   projects, setProjects, 
   members, setMembers, 
   activities, setActivities, 
-  archive, setArchive, 
+  awards, setAwards, 
   config, setConfig,
   onLogout 
 }) => {
@@ -42,7 +42,7 @@ export const Admin: React.FC<AdminProps> = ({
   const [newActivity, setNewActivity] = useState<Partial<ActivityLog>>({
     title: '', date: '2024.01', type: 'Workshop', description: '', imageUrl: ''
   });
-  const [newArchive, setNewArchive] = useState<Partial<ArchiveItem>>({
+  const [newAward, setNewAward] = useState<Partial<AwardItem>>({
     title: '', type: 'Award', year: '2024', description: ''
   });
 
@@ -124,7 +124,7 @@ export const Admin: React.FC<AdminProps> = ({
   const deleteProject = createDeleteHandler(projects, setProjects, DataService.saveProjects);
   const deleteMember = createDeleteHandler(members, setMembers, DataService.saveMembers);
   const deleteActivity = createDeleteHandler(activities, setActivities, DataService.saveActivities);
-  const deleteArchive = createDeleteHandler(archive, setArchive, DataService.saveArchive);
+  const deleteAward = createDeleteHandler(awards, setAwards, DataService.saveAwards);
 
   const handleAddProject = (e: React.FormEvent) => {
     e.preventDefault();
@@ -153,13 +153,13 @@ export const Admin: React.FC<AdminProps> = ({
     setNewActivity({ title: '', date: '2024.01', type: 'Workshop', description: '', imageUrl: '' });
   };
 
-  const handleAddArchive = (e: React.FormEvent) => {
+  const handleAddAward = (e: React.FormEvent) => {
     e.preventDefault();
-    const item: ArchiveItem = { ...newArchive as ArchiveItem, id: DataService.generateId() };
-    const updated = [item, ...archive];
-    setArchive(updated);
-    safeSave(DataService.saveArchive, updated);
-    setNewArchive({ title: '', type: 'Award', year: '2024', description: '' });
+    const item: AwardItem = { ...newAward as AwardItem, id: DataService.generateId() };
+    const updated = [item, ...awards];
+    setAwards(updated);
+    safeSave(DataService.saveAwards, updated);
+    setNewAward({ title: '', type: 'Award', year: '2024', description: '' });
   };
   
   const handleConfigUpdate = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -284,7 +284,7 @@ export const Admin: React.FC<AdminProps> = ({
           { id: 'projects', icon: Layout, label: 'Projects' },
           { id: 'members', icon: Users, label: 'Members' },
           { id: 'activities', icon: Calendar, label: 'Activities' },
-          { id: 'archive', icon: Archive, label: 'Archive' },
+          { id: 'award', icon: Archive, label: 'Awards' },
           { id: 'system', icon: Database, label: 'Database' },
         ].map(tab => (
           <button
@@ -441,28 +441,28 @@ export const Admin: React.FC<AdminProps> = ({
           </>
         )}
 
-        {/* Archive Tab */}
-        {activeTab === 'archive' && (
+        {/* Awards Tab */}
+        {activeTab === 'award' && (
           <>
             <div className="lg:col-span-1 bg-neutral-900 p-6 border border-neutral-800 h-fit shadow-sm">
-              <h3 className="text-sm font-bold text-white mb-4 uppercase tracking-wider flex items-center gap-2"><Plus size={16}/> New Entry</h3>
-              <form onSubmit={handleAddArchive} className="space-y-4">
-                <input placeholder="Title" value={newArchive.title} onChange={e => setNewArchive({...newArchive, title: e.target.value})} className="w-full bg-black border border-neutral-700 px-3 py-2 text-white outline-none focus:border-jakdang-accent" required />
+              <h3 className="text-sm font-bold text-white mb-4 uppercase tracking-wider flex items-center gap-2"><Plus size={16}/> New Award</h3>
+              <form onSubmit={handleAddAward} className="space-y-4">
+                <input placeholder="Title" value={newAward.title} onChange={e => setNewAward({...newAward, title: e.target.value})} className="w-full bg-black border border-neutral-700 px-3 py-2 text-white outline-none focus:border-jakdang-accent" required />
                 <div className="grid grid-cols-2 gap-2">
-                  <select value={newArchive.type} onChange={e => setNewArchive({...newArchive, type: e.target.value as any})} className="bg-black border border-neutral-700 text-white px-3 py-2 outline-none">
+                  <select value={newAward.type} onChange={e => setNewAward({...newAward, type: e.target.value as any})} className="bg-black border border-neutral-700 text-white px-3 py-2 outline-none">
                     <option value="Award">Award</option><option value="Publication">Publication</option><option value="Exhibition">Exhibition</option>
                   </select>
-                  <input placeholder="Year" value={newArchive.year} onChange={e => setNewArchive({...newArchive, year: e.target.value})} className="bg-black border border-neutral-700 text-white px-3 py-2 outline-none" />
+                  <input placeholder="Year" value={newAward.year} onChange={e => setNewAward({...newAward, year: e.target.value})} className="bg-black border border-neutral-700 text-white px-3 py-2 outline-none" />
                 </div>
-                <textarea placeholder="Description" value={newArchive.description} onChange={e => setNewArchive({...newArchive, description: e.target.value})} className="w-full bg-black border border-neutral-700 px-3 py-2 text-white outline-none h-20" />
+                <textarea placeholder="Description" value={newAward.description} onChange={e => setNewAward({...newAward, description: e.target.value})} className="w-full bg-black border border-neutral-700 px-3 py-2 text-white outline-none h-20" />
                 <button type="submit" className="w-full bg-white text-black font-bold py-2 hover:bg-jakdang-accent hover:text-white transition-colors shadow-lg">ADD TO DATABASE</button>
               </form>
             </div>
             <div className="lg:col-span-2 space-y-2">
-              {archive.map(a => (
+              {awards.map(a => (
                 <div key={a.id} className="flex justify-between items-center p-4 border border-neutral-800 bg-neutral-900 hover:shadow-md transition-shadow">
                   <div><h4 className="font-bold text-white">{a.title}</h4><p className="text-xs text-neutral-500">{a.year} | {a.type}</p></div>
-                  <button onClick={() => deleteArchive(a.id)} className="text-neutral-600 hover:text-red-500"><Trash2 size={18}/></button>
+                  <button onClick={() => deleteAward(a.id)} className="text-neutral-600 hover:text-red-500"><Trash2 size={18}/></button>
                 </div>
               ))}
             </div>

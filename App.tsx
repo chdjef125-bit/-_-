@@ -3,8 +3,8 @@ import { Layout } from './components/Layout';
 import { Home } from './components/Home';
 import { Works } from './components/Works';
 import { Admin } from './components/Admin';
-import { Members, Archive, Activity, Contact } from './components/OtherPages';
-import { PageView, Project, Member, ArchiveItem, ActivityLog, SiteConfig } from './types';
+import { Members, Awards, Activity, Contact } from './components/OtherPages';
+import { PageView, Project, Member, AwardItem, ActivityLog, SiteConfig } from './types';
 import { DataService } from './services/store';
 
 // Splash Screen Component
@@ -55,11 +55,11 @@ const App: React.FC = () => {
   // Data State
   const [projects, setProjects] = useState<Project[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
-  const [archive, setArchive] = useState<ArchiveItem[]>([]);
+  const [awards, setAwards] = useState<AwardItem[]>([]);
   const [activities, setActivities] = useState<ActivityLog[]>([]);
   const [siteConfig, setSiteConfig] = useState<SiteConfig>({
-    homeHeroTitle: "", homeHeroSubtitle: "", homeHeroDescription: "", homeHeroImageUrl: "",
-    aboutDefinition: "", aboutDescription: "", contactRecruitText: "", contactCollabText: ""
+    homeHeroTitle: "", homeHeroSubtitle: "", homeHeroDescription: "", homeHeroImageUrl: "", homeGridImages: [],
+    aboutDefinition: "", contactRecruitText: "", contactCollabText: ""
   });
 
   // Initialize Data Effects and Splash Timer
@@ -69,14 +69,14 @@ const App: React.FC = () => {
         const [p, m, a, act, conf] = await Promise.all([
           DataService.getProjects(),
           DataService.getMembers(),
-          DataService.getArchive(),
+          DataService.getAwards(),
           DataService.getActivities(),
           DataService.getSiteConfig()
         ]);
 
         setProjects(p);
         setMembers(m);
-        setArchive(a);
+        setAwards(a);
         setActivities(act);
         setSiteConfig(conf);
       } catch (error) {
@@ -111,8 +111,8 @@ const App: React.FC = () => {
       // Process route removed
       case 'activity':
         return <Activity items={activities} />;
-      case 'archive':
-        return <Archive items={archive} />;
+      case 'award':
+        return <Awards items={awards} />;
       case 'contact':
         return <Contact config={siteConfig} onNavigate={handleNavigate} />;
       case 'admin':
@@ -121,7 +121,7 @@ const App: React.FC = () => {
             projects={projects} setProjects={setProjects}
             members={members} setMembers={setMembers}
             activities={activities} setActivities={setActivities}
-            archive={archive} setArchive={setArchive}
+            awards={awards} setAwards={setAwards}
             config={siteConfig} setConfig={setSiteConfig}
             onLogout={() => setCurrentPage('home')} 
           />
