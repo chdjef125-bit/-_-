@@ -52,59 +52,113 @@ export const Admin: React.FC<AdminProps> = ({
     }
   };
 
-  /* --- HANDLERS --- */
+  /* --- UTILS --- */
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, setter: (url: string) => void) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 20 * 1024 * 1024) {
-        alert("File is too large (>20MB). Please pick a smaller image.");
-        return;
-      }
+  // Improved Image Compression Logic
+  // Firestore Document limit is 1MB. We target < 800KB safe zone.
+  const compressImage = (file: File, maxWidth: number, quality: number, maxChars: number): Promise<string> => {
+    return new Promise((resolve) => {
+        if (file.size > 20 * 1024 * 1024) { // 20MB hard limit input
+           alert("File is too massive (>20MB). Please use a smaller file.");
+           resolve("");
+           return;
+        }
 
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const img = new Image();
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          let width = img.width;
-          let height = img.height;
-          
-          // Reduced Max Width/Quality to prevent Storage Quota issues
-          const MAX_WIDTH = 1920; 
-          if (width > MAX_WIDTH) {
-            height = (MAX_WIDTH / width) * height;
-            width = MAX_WIDTH;
-          }
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                let w = img.width;
+                let h = img.height;
+                
+                // 1. Resize (Maintain Aspect Ratio)
+                if (w > h) {
+                    if (w > maxWidth) {
+                        h = Math.round(h * (maxWidth / w));
+                        w = maxWidth;
+                    }
+                } else {
+                    if (h > maxWidth) {
+                        w = Math.round(w * (maxWidth / h));
+                        h = maxWidth;
+                    }
+                }
+                
+                canvas.width = w;
+                canvas.height = h;
+                const ctx = canvas.getContext('2d');
+                ctx?.drawImage(img, 0, 0, w, h);
+                
+                // 2. Compress
+                let data = canvas.toDataURL('image/jpeg', quality);
+                
+                // 3. Check Size & Retry if needed
+                if (data.length > maxChars) {
+                    // Retry with 30% lower quality
+                    const retryQuality = quality * 0.7;
+                    data = canvas.toDataURL('image/jpeg', retryQuality);
+                    
+                    if (data.length > maxChars) {
+                        // Retry with half dimensions
+                        const canvas2 = document.createElement('canvas');
+                        const w2 = Math.floor(w * 0.7);
+                        const h2 = Math.floor(h * 0.7);
+                        canvas2.width = w2;
+                        canvas2.height = h2;
+                        const ctx2 = canvas2.getContext('2d');
+                        ctx2?.drawImage(canvas, 0, 0, w2, h2);
+                        data = canvas2.toDataURL('image/jpeg', retryQuality);
+                    }
+                }
 
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext('2d');
-          ctx?.drawImage(img, 0, 0, width, height);
-
-          // Quality reduced to 0.8
-          const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
-          setter(dataUrl);
+                // Final Check
+                if (data.length > 1040000) { // Approx 1MB limit check
+                    alert("Image is still too large for the database. Please use a smaller image.");
+                    resolve("");
+                } else {
+                    resolve(data);
+                }
+            };
+            img.onerror = () => {
+                alert("Invalid image file.");
+                resolve("");
+            }
+            img.src = e.target?.result as string;
         };
-        img.src = event.target?.result as string;
-      };
-      reader.readAsDataURL(file);
-    }
+        reader.readAsDataURL(file);
+    });
   };
-  
+
   const safeSave = async <T,>(saveFn: (data: T) => Promise<void>, data: T) => {
     setIsSaving(true);
     try {
       await saveFn(data);
     } catch (e: any) {
-      if (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED') {
-        alert("Storage Quota Exceeded! Image too large. Use an external URL.");
-      } else {
-        console.error(e);
-        alert("Failed to save data. " + (DataService.isConfigured ? "Check Firebase Console." : ""));
+      console.error("Save failed:", e);
+      let msg = "Failed to save data. Check Firebase Console.";
+      
+      // Detailed Error Handling
+      if (e.code === 'invalid-argument' && e.message?.includes('size')) {
+          msg = "Data Too Large: The image or content exceeds the database limit (1MB). Please try a smaller image.";
+      } else if (e.name === 'QuotaExceededError') {
+          msg = "Browser Storage Full: Clear cache or switch to Firebase mode.";
       }
+
+      alert(msg);
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  /* --- HANDLERS --- */
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, setter: (url: string) => void) => {
+    const file = e.target.files?.[0];
+    if (file) {
+        // For main images: Max 800px, 0.6 quality, target ~700KB (950k chars)
+        const compressed = await compressImage(file, 800, 0.6, 950000);
+        if (compressed) setter(compressed);
     }
   };
   
@@ -219,77 +273,29 @@ export const Admin: React.FC<AdminProps> = ({
   const handleAddGridImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
-
-    // Set saving state to show feedback during processing
     setIsSaving(true);
 
-    const processFile = (file: File): Promise<string> => {
-      return new Promise((resolve) => {
-        if (file.size > 20 * 1024 * 1024) {
-          console.warn(`File ${file.name} too large.`);
-          resolve('');
-          return;
-        }
-
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          const img = new Image();
-          img.onload = () => {
-            const canvas = document.createElement('canvas');
-            let width = img.width;
-            let height = img.height;
-            const MAX_WIDTH = 1920; 
-            if (width > MAX_WIDTH) {
-              height = (MAX_WIDTH / width) * height;
-              width = MAX_WIDTH;
-            }
-
-            canvas.width = width;
-            canvas.height = height;
-            const ctx = canvas.getContext('2d');
-            ctx?.drawImage(img, 0, 0, width, height);
-            
-            // Compressing to 0.8 quality jpeg
-            const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
-            resolve(dataUrl);
-          };
-          img.onerror = () => resolve('');
-          img.src = event.target?.result as string;
-        };
-        reader.onerror = () => resolve('');
-        reader.readAsDataURL(file);
-      });
-    };
-
-    try {
-      const promises = Array.from(files).map(processFile);
-      const results = await Promise.all(promises);
-      const validResults = results.filter(url => url.length > 0);
-
-      if (validResults.length > 0) {
-        const currentImages = config.homeGridImages || [];
-        const newConfig = { ...config, homeGridImages: [...validResults, ...currentImages] };
-        setConfig(newConfig);
-        
-        // Save to DB
-        try {
-           await DataService.saveSiteConfig(newConfig);
-        } catch (e: any) {
-           if (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED') {
-             alert("Storage Quota Exceeded! Images might not persist locally.");
-           } else {
-             console.error(e);
-             alert("Failed to save data to database.");
-           }
-        }
-      }
-    } catch (error) {
-       console.error("Error processing images:", error);
-       alert("Error processing images.");
-    } finally {
-       setIsSaving(false);
-       e.target.value = '';
+    const newImages: string[] = [];
+    
+    for (let i = 0; i < files.length; i++) {
+        // Grid images: Smaller (400px), Lower Quality (0.5), Target ~200KB (280k chars)
+        const url = await compressImage(files[i], 400, 0.5, 280000);
+        if (url) newImages.push(url);
     }
+
+    if (newImages.length > 0) {
+        const currentImages = config.homeGridImages || [];
+        const newConfig = { ...config, homeGridImages: [...newImages, ...currentImages] };
+        setConfig(newConfig);
+        try {
+            await DataService.saveSiteConfig(newConfig);
+        } catch (e: any) {
+            alert("Failed to save. Total grid images might be too large. Try adding fewer at a time.");
+            console.error(e);
+        }
+    }
+    setIsSaving(false);
+    e.target.value = '';
   };
 
   const removeGridImage = (index: number) => {
@@ -361,7 +367,7 @@ export const Admin: React.FC<AdminProps> = ({
     <div className="space-y-8 relative bg-black min-h-screen p-4 md:p-0">
       {isSaving && (
         <div className="fixed top-4 right-4 z-[100] bg-jakdang-accent text-white px-4 py-2 rounded shadow-lg flex items-center gap-2 animate-pulse">
-           <RefreshCw size={16} className="animate-spin" /> Saving to Server...
+           <RefreshCw size={16} className="animate-spin" /> Saving...
         </div>
       )}
 
@@ -449,111 +455,82 @@ export const Admin: React.FC<AdminProps> = ({
                 <input placeholder="Author" value={newProject.author} onChange={e => setNewProject({...newProject, author: e.target.value})} className="w-full bg-black border border-neutral-700 px-3 py-2 text-white outline-none" required />
                 <textarea placeholder="Description" value={newProject.description} onChange={e => setNewProject({...newProject, description: e.target.value})} className="w-full bg-black border border-neutral-700 px-3 py-2 text-white outline-none h-24" required />
                 <div>
-                   <label className="block text-xs text-neutral-500 mb-1">Cover Image</label>
+                   <label className="block text-xs text-neutral-500 mb-1">Cover Image (Auto-compressed)</label>
                    <div className="relative">
                      <input type="file" accept="image/*" onChange={e => handleImageUpload(e, url => setNewProject({...newProject, imageUrl: url}))} className="hidden" id="proj-img" />
-                     <label htmlFor="proj-img" className="flex items-center justify-center w-full h-24 border border-dashed border-neutral-700 hover:border-jakdang-accent cursor-pointer text-neutral-500 hover:text-white transition-colors bg-black">
-                       {newProject.imageUrl ? <img src={newProject.imageUrl} className="h-full w-full object-cover" alt="Preview"/> : <div className="flex flex-col items-center"><Upload size={20}/> <span className="text-xs mt-1">Upload Image (High Quality)</span></div>}
+                     <label htmlFor="proj-img" className="flex items-center justify-center w-full h-24 border border-dashed border-neutral-700 hover:border-white cursor-pointer transition-colors">
+                        {newProject.imageUrl ? (
+                          <img src={newProject.imageUrl} className="h-full object-contain" alt="Preview"/>
+                        ) : (
+                          <div className="text-neutral-500 flex flex-col items-center gap-1">
+                            <Upload size={20} />
+                            <span className="text-xs">Upload Image</span>
+                          </div>
+                        )}
                      </label>
                    </div>
-                   <div className="mt-2 flex items-center gap-2">
-                     <Link size={12} className="text-neutral-500" />
-                     <input placeholder="Or paste Image URL" value={newProject.imageUrl} onChange={e => setNewProject({...newProject, imageUrl: e.target.value})} className="bg-transparent border-b border-neutral-700 text-xs w-full py-1 text-white outline-none focus:border-jakdang-accent" />
-                   </div>
                 </div>
-                <button type="submit" className={`w-full font-bold py-2 transition-colors shadow-lg ${editingProjectId ? 'bg-jakdang-accent text-white' : 'bg-white text-black hover:bg-jakdang-accent hover:text-white'}`}>
-                  {editingProjectId ? 'UPDATE PROJECT' : 'ADD TO DATABASE'}
+                <button type="submit" className="w-full bg-white text-black font-bold py-3 hover:bg-neutral-200 transition-colors uppercase tracking-widest text-xs">
+                  {editingProjectId ? 'Update Project' : 'Add Project'}
                 </button>
               </form>
             </div>
-            <div className="lg:col-span-2 space-y-2">
-              <h4 className="text-xs font-mono text-neutral-500 uppercase tracking-widest mb-4">Existing Projects ({projects.length})</h4>
+
+            <div className="lg:col-span-2 space-y-4">
+              {projects.length === 0 && <p className="text-neutral-500 italic">No projects added yet.</p>}
               {projects.map(p => (
-                <div key={p.id} className={`flex justify-between items-center p-4 border transition-all ${editingProjectId === p.id ? 'border-jakdang-accent bg-neutral-900/80' : 'border-neutral-800 bg-neutral-900 hover:shadow-md'}`}>
-                  <div className="flex items-center gap-4">
-                    {p.imageUrl && <img src={p.imageUrl} alt="" className="w-12 h-12 object-cover bg-neutral-800"/>}
-                    <div>
-                        <h4 className={`font-bold ${editingProjectId === p.id ? 'text-jakdang-accent' : 'text-white'}`}>{p.title}</h4>
-                        <p className="text-xs text-neutral-500">{p.year} | {p.category}</p>
+                <div key={p.id} className={`flex gap-4 p-4 bg-neutral-900/50 border ${editingProjectId === p.id ? 'border-jakdang-accent' : 'border-neutral-800'}`}>
+                  {p.imageUrl && <img src={p.imageUrl} alt="" className="w-20 h-20 object-cover bg-neutral-800" />}
+                  <div className="flex-1">
+                    <div className="flex justify-between items-start">
+                      <h4 className="font-bold text-white">{p.title}</h4>
+                      <div className="flex gap-2">
+                        <button onClick={() => handleEditProject(p)} className="p-1 hover:text-jakdang-accent transition-colors"><Edit2 size={14} /></button>
+                        <button onClick={() => deleteProject(p.id)} className="p-1 hover:text-red-500 transition-colors"><Trash2 size={14} /></button>
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button 
-                      onClick={() => handleEditProject(p)} 
-                      className="text-neutral-600 hover:text-white p-2 border border-transparent hover:border-neutral-800 transition-colors"
-                      title="Edit"
-                    >
-                        <Edit2 size={18}/>
-                    </button>
-                    <button 
-                      onClick={() => deleteProject(p.id)} 
-                      className="text-neutral-600 hover:text-red-500 p-2 border border-transparent hover:border-neutral-800 transition-colors"
-                      title="Delete"
-                    >
-                        <Trash2 size={18}/>
-                    </button>
+                    <p className="text-xs text-neutral-400 font-mono mt-1">{p.category} | {p.year} | {p.author}</p>
+                    <p className="text-xs text-neutral-500 mt-2 line-clamp-2">{p.description}</p>
                   </div>
                 </div>
               ))}
             </div>
           </>
         )}
-        
+
         {/* Members Tab */}
         {activeTab === 'members' && (
           <>
-            <div className="lg:col-span-1 bg-neutral-900 p-6 border border-neutral-800 h-fit shadow-sm">
+             <div className="lg:col-span-1 bg-neutral-900 p-6 border border-neutral-800 h-fit sticky top-4">
               <h3 className="text-sm font-bold text-white mb-4 uppercase tracking-wider flex items-center gap-2"><Plus size={16}/> New Member</h3>
               <form onSubmit={handleAddMember} className="space-y-4">
-                <input placeholder="Name" value={newMember.name} onChange={e => setNewMember({...newMember, name: e.target.value})} className="w-full bg-black border border-neutral-700 px-3 py-2 text-white outline-none focus:border-jakdang-accent" required />
-                <div className="grid grid-cols-1 gap-2">
-                  <select value={newMember.role} onChange={e => setNewMember({...newMember, role: e.target.value as any})} className="bg-black border border-neutral-700 text-white px-3 py-2 outline-none">
-                    <option value="YB">YB (Active)</option><option value="OB">OB (Alumni)</option>
-                  </select>
-                </div>
-                <input placeholder="Philosophy (One liner) - Optional" value={newMember.philosophy} onChange={e => setNewMember({...newMember, philosophy: e.target.value})} className="w-full bg-black border border-neutral-700 px-3 py-2 text-white outline-none" />
-                <div>
-                   <label className="block text-xs text-neutral-500 mb-1">Profile Image</label>
-                   <div className="relative">
-                     <input type="file" accept="image/*" onChange={e => handleImageUpload(e, url => setNewMember({...newMember, imageUrl: url}))} className="hidden" id="mem-img" />
-                     <label htmlFor="mem-img" className="flex items-center justify-center w-full h-24 border border-dashed border-neutral-700 hover:border-jakdang-accent cursor-pointer text-neutral-500 hover:text-white transition-colors bg-black">
-                       {newMember.imageUrl ? <img src={newMember.imageUrl} className="h-full w-full object-cover" alt="Preview"/> : <div className="flex flex-col items-center"><Upload size={20}/> <span className="text-xs mt-1">Upload Image (High Quality)</span></div>}
-                     </label>
-                   </div>
-                   <div className="mt-2 flex items-center gap-2">
-                     <Link size={12} className="text-neutral-500" />
-                     <input placeholder="Or paste Image URL" value={newMember.imageUrl} onChange={e => setNewMember({...newMember, imageUrl: e.target.value})} className="bg-transparent border-b border-neutral-700 text-xs w-full py-1 text-white outline-none focus:border-jakdang-accent" />
-                   </div>
-                </div>
-                <button type="submit" className="w-full bg-white text-black font-bold py-2 hover:bg-jakdang-accent hover:text-white transition-colors shadow-lg">ADD TO DATABASE</button>
+                <input placeholder="Name" value={newMember.name} onChange={e => setNewMember({...newMember, name: e.target.value})} className="w-full bg-black border border-neutral-700 px-3 py-2 text-white outline-none" required />
+                <select value={newMember.role} onChange={e => setNewMember({...newMember, role: e.target.value as any})} className="w-full bg-black border border-neutral-700 text-white px-3 py-2 outline-none">
+                  <option value="OB">OB (Alumni)</option>
+                  <option value="YB">YB (Active)</option>
+                </select>
+                <button type="submit" className="w-full bg-white text-black font-bold py-3 hover:bg-neutral-200 transition-colors uppercase tracking-widest text-xs">
+                  Add Member
+                </button>
               </form>
             </div>
-            <div className="lg:col-span-2 space-y-2">
-              <div className="bg-neutral-800/30 p-2 mb-2 text-xs text-neutral-500 text-center">Use arrows to reorder members</div>
-              {displayMembers.map((m, index) => (
-                <div key={m.id} className="flex justify-between items-center p-4 border border-neutral-800 bg-neutral-900 hover:shadow-md transition-shadow">
-                  <div className="flex items-center gap-4">
-                     <div className="flex flex-col gap-1 mr-2">
-                       <button 
-                         onClick={() => moveMember(index, -1)} 
-                         disabled={index === 0}
-                         className="p-1 hover:bg-neutral-800 text-neutral-500 disabled:opacity-20 transition-colors"
-                       >
-                         <ArrowUp size={14} />
-                       </button>
-                       <button 
-                         onClick={() => moveMember(index, 1)}
-                         disabled={index === displayMembers.length - 1} 
-                         className="p-1 hover:bg-neutral-800 text-neutral-500 disabled:opacity-20 transition-colors"
-                       >
-                         <ArrowDown size={14} />
-                       </button>
-                     </div>
 
-                     {m.imageUrl && <img src={m.imageUrl} alt="" className="w-10 h-10 object-cover rounded-full bg-neutral-800" />}
-                     <div><h4 className="font-bold text-white">{m.name}</h4><p className="text-xs text-neutral-500">{m.role}</p></div>
+            <div className="lg:col-span-2 space-y-6">
+               <div className="flex justify-between items-center bg-neutral-900 p-4 border border-neutral-800">
+                  <span className="text-sm text-neutral-400">Drag/Move logic is simplified to Up/Down buttons for mobile compatibility.</span>
+               </div>
+               
+               {displayMembers.map((m, idx) => (
+                <div key={m.id} className="flex items-center gap-4 p-4 bg-neutral-900/50 border border-neutral-800 hover:border-neutral-700 transition-colors">
+                  <div className="flex flex-col gap-1 text-neutral-500">
+                    <button onClick={() => moveMember(idx, -1)} disabled={idx === 0} className="hover:text-white disabled:opacity-30"><ArrowUp size={16} /></button>
+                    <button onClick={() => moveMember(idx, 1)} disabled={idx === members.length - 1} className="hover:text-white disabled:opacity-30"><ArrowDown size={16} /></button>
                   </div>
-                  <button onClick={() => deleteMember(m.id)} className="text-neutral-600 hover:text-red-500"><Trash2 size={18}/></button>
+                  <div className="flex-1">
+                    <h4 className="font-bold text-white">{m.name}</h4>
+                    <p className="text-xs text-neutral-500 font-mono">{m.role}</p>
+                  </div>
+                  <button onClick={() => deleteMember(m.id)} className="text-neutral-600 hover:text-red-500 p-2"><Trash2 size={16} /></button>
                 </div>
               ))}
             </div>
@@ -563,231 +540,223 @@ export const Admin: React.FC<AdminProps> = ({
         {/* Awards Tab */}
         {activeTab === 'award' && (
           <>
-            <div className="lg:col-span-1 bg-neutral-900 p-6 border border-neutral-800 h-fit shadow-sm">
-              <h3 className="text-sm font-bold text-white mb-4 uppercase tracking-wider flex items-center gap-2"><Plus size={16}/> New Award</h3>
+            <div className="lg:col-span-1 bg-neutral-900 p-6 border border-neutral-800 h-fit sticky top-4">
+              <h3 className="text-sm font-bold text-white mb-4 uppercase tracking-wider flex items-center gap-2"><Plus size={16}/> New Record</h3>
               <form onSubmit={handleAddAward} className="space-y-4">
-                <input placeholder="Title" value={newAward.title} onChange={e => setNewAward({...newAward, title: e.target.value})} className="w-full bg-black border border-neutral-700 px-3 py-2 text-white outline-none focus:border-jakdang-accent" required />
+                <input placeholder="Title" value={newAward.title} onChange={e => setNewAward({...newAward, title: e.target.value})} className="w-full bg-black border border-neutral-700 px-3 py-2 text-white outline-none" required />
                 <div className="grid grid-cols-2 gap-2">
-                  <select value={newAward.type} onChange={e => setNewAward({...newAward, type: e.target.value as any})} className="bg-black border border-neutral-700 text-white px-3 py-2 outline-none">
-                    <option value="Award">Award</option><option value="Publication">Publication</option><option value="Exhibition">Exhibition</option>
+                   <select value={newAward.type} onChange={e => setNewAward({...newAward, type: e.target.value as any})} className="bg-black border border-neutral-700 text-white px-3 py-2 outline-none">
+                    <option value="Award">Award</option>
+                    <option value="Exhibition">Exhibition</option>
+                    <option value="Publication">Publication</option>
                   </select>
-                  <input placeholder="Year" value={newAward.year} onChange={e => setNewAward({...newAward, year: e.target.value})} className="bg-black border border-neutral-700 text-white px-3 py-2 outline-none" />
+                  <input placeholder="Year" value={newAward.year} onChange={e => setNewAward({...newAward, year: e.target.value})} className="bg-black border border-neutral-700 text-white px-3 py-2 outline-none" required/>
                 </div>
-                <textarea placeholder="Description" value={newAward.description} onChange={e => setNewAward({...newAward, description: e.target.value})} className="w-full bg-black border border-neutral-700 px-3 py-2 text-white outline-none h-20" />
-                <button type="submit" className="w-full bg-white text-black font-bold py-2 hover:bg-jakdang-accent hover:text-white transition-colors shadow-lg">ADD TO DATABASE</button>
+                <textarea placeholder="Description (Prize name, details...)" value={newAward.description} onChange={e => setNewAward({...newAward, description: e.target.value})} className="w-full bg-black border border-neutral-700 px-3 py-2 text-white outline-none h-24" />
+                <button type="submit" className="w-full bg-white text-black font-bold py-3 hover:bg-neutral-200 transition-colors uppercase tracking-widest text-xs">
+                  Add Record
+                </button>
               </form>
             </div>
-            <div className="lg:col-span-2 space-y-2">
-              {awards.map(a => (
-                <div key={a.id} className="flex justify-between items-center p-4 border border-neutral-800 bg-neutral-900 hover:shadow-md transition-shadow">
-                  <div><h4 className="font-bold text-white">{a.title}</h4><p className="text-xs text-neutral-500">{a.year} | {a.type}</p></div>
-                  <button onClick={() => deleteAward(a.id)} className="text-neutral-600 hover:text-red-500"><Trash2 size={18}/></button>
-                </div>
-              ))}
+
+            <div className="lg:col-span-2">
+               <div className="overflow-hidden border border-neutral-800 rounded">
+                <table className="w-full text-left text-sm text-neutral-400">
+                  <thead className="bg-neutral-900 text-xs uppercase font-mono text-neutral-500">
+                    <tr>
+                      <th className="p-3">Year</th>
+                      <th className="p-3">Title</th>
+                      <th className="p-3">Desc</th>
+                      <th className="p-3 text-right">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-neutral-800">
+                    {awards.map(a => (
+                      <tr key={a.id} className="hover:bg-neutral-900/50">
+                        <td className="p-3 font-mono">{a.year}</td>
+                        <td className="p-3 text-white font-bold">{a.title}</td>
+                        <td className="p-3">{a.description}</td>
+                        <td className="p-3 text-right">
+                          <button onClick={() => deleteAward(a.id)} className="hover:text-red-500"><Trash2 size={14} /></button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </>
         )}
-        
-        {/* === SITE CONFIG TAB === */}
+
+        {/* Config Tab */}
         {activeTab === 'config' && (
-          <div className="lg:col-span-3 bg-neutral-900 p-6 border border-neutral-800 shadow-sm">
-             <div className="flex justify-between items-center mb-6">
-                <h3 className="text-lg font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                  <Settings size={20} /> Site Content Configuration
-                </h3>
-             </div>
+           <div className="lg:col-span-3 space-y-8 pb-12">
              
-             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-               
-               {/* 1. HOME GRID GALLERY MANAGER */}
-               <div className="space-y-6 md:col-span-2 border-b border-neutral-800 pb-8">
-                 <h4 className="text-jakdang-accent font-bold text-sm flex items-center gap-2">
-                   <Grid size={16} /> Home Grid Gallery (Dense Photo Wall)
-                 </h4>
-                 <div className="bg-black/50 p-4 border border-neutral-800">
-                    <p className="text-xs text-neutral-500 mb-4">
-                      These images will be displayed in a dense grid pattern on the Home page background. 
-                      Add multiple images to create a rich wall of work.
-                    </p>
-                    
-                    {/* Image List */}
-                    <div className="grid grid-cols-4 md:grid-cols-8 gap-2 mb-4">
-                      {config.homeGridImages && config.homeGridImages.map((img, idx) => (
-                        <div key={idx} className="relative group aspect-square">
-                           <img src={img} className="w-full h-full object-cover border border-neutral-800" />
-                           <button 
-                             onClick={() => removeGridImage(idx)}
-                             className="absolute inset-0 bg-red-900/80 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                           >
-                             <Trash2 size={16} className="text-white" />
-                           </button>
-                        </div>
-                      ))}
-                      {/* Add Button */}
-                      <div className="aspect-square relative">
-                        <input type="file" accept="image/*" multiple onChange={handleAddGridImage} className="hidden" id="grid-add" />
-                        <label htmlFor="grid-add" className="flex flex-col items-center justify-center w-full h-full border border-dashed border-neutral-700 hover:border-jakdang-accent cursor-pointer text-neutral-500 hover:text-white transition-colors bg-black">
-                          <Plus size={20} />
-                          <span className="text-[10px] mt-1">Add (Multi)</span>
-                        </label>
+             {/* Section 1: Hero */}
+             <div className="bg-neutral-900 border border-neutral-800 p-6">
+                <h3 className="text-lg font-bold text-white mb-6 border-b border-neutral-800 pb-2">Home: Hero Section</h3>
+                <div className="grid md:grid-cols-2 gap-8">
+                   <div className="space-y-4">
+                      <div>
+                        <label className="text-xs text-neutral-500 uppercase block mb-1">Main Title</label>
+                        <input name="homeHeroTitle" value={config.homeHeroTitle} onChange={handleConfigUpdate} className="w-full bg-black border border-neutral-700 px-3 py-2 text-white" />
                       </div>
-                    </div>
-                 </div>
-               </div>
-
-               {/* Main Hero Section Text */}
-               <div className="space-y-6 md:col-span-2 border-b border-neutral-800 pb-8">
-                 <h4 className="text-jakdang-accent font-bold text-sm flex items-center gap-2">
-                   <FileText size={16} /> Home Hero Text
-                 </h4>
-                 
-                 <div className="grid md:grid-cols-2 gap-8 items-start">
-                   {/* Hero Text */}
-                   <div className="space-y-4 w-full">
-                     <div>
-                       <label className="block text-xs text-neutral-500 mb-1">Hero Title</label>
-                       <input name="homeHeroTitle" value={config.homeHeroTitle} onChange={handleConfigUpdate} className="w-full bg-black border border-neutral-700 px-3 py-2 text-white outline-none" />
-                     </div>
-                     <div>
-                       <label className="block text-xs text-neutral-500 mb-1">Hero Subtitle</label>
-                       <input name="homeHeroSubtitle" value={config.homeHeroSubtitle} onChange={handleConfigUpdate} className="w-full bg-black border border-neutral-700 px-3 py-2 text-white outline-none" />
-                     </div>
-                     <div>
-                       <label className="block text-xs text-neutral-500 mb-1">Hero Description</label>
-                       <textarea name="homeHeroDescription" value={config.homeHeroDescription} onChange={handleConfigUpdate} className="w-full bg-black border border-neutral-700 px-3 py-2 text-white outline-none h-24" />
-                     </div>
+                      <div>
+                        <label className="text-xs text-neutral-500 uppercase block mb-1">Subtitle</label>
+                        <input name="homeHeroSubtitle" value={config.homeHeroSubtitle} onChange={handleConfigUpdate} className="w-full bg-black border border-neutral-700 px-3 py-2 text-white" />
+                      </div>
+                      <div>
+                        <label className="text-xs text-neutral-500 uppercase block mb-1">Description</label>
+                        <textarea name="homeHeroDescription" value={config.homeHeroDescription} onChange={handleConfigUpdate} className="w-full bg-black border border-neutral-700 px-3 py-2 text-white h-24" />
+                      </div>
                    </div>
-                 </div>
-               </div>
-
-               {/* Process Section Images REMOVED */}
-
-               {/* Text Configs */}
-               <div className="space-y-4">
-                 <h4 className="text-jakdang-accent font-bold text-sm border-b border-neutral-800 pb-2">About Page Text</h4>
-                 <div>
-                   <label className="block text-xs text-neutral-500 mb-1">Manifesto Title (e.g. Conspire)</label>
-                   <input name="homeManifestoTitle" value={config.homeManifestoTitle || ''} onChange={handleConfigUpdate} className="w-full bg-black border border-neutral-700 px-3 py-2 text-white outline-none" />
-                 </div>
-                 {/* NEW: Manifesto Image Uploader */}
-                 <div>
-                   <label className="block text-xs text-neutral-500 mb-1">Manifesto Image (Sketch)</label>
-                   <div className="relative">
-                     <input type="file" accept="image/*" onChange={handleConfigImageUpload('homeManifestoImageUrl')} className="hidden" id="manifesto-img" />
-                     <label htmlFor="manifesto-img" className="flex items-center justify-center w-full h-32 border border-dashed border-neutral-700 hover:border-jakdang-accent cursor-pointer text-neutral-500 hover:text-white transition-colors bg-black overflow-hidden relative">
-                       {config.homeManifestoImageUrl ? (
-                         <>
-                           <img src={config.homeManifestoImageUrl} className="h-full w-full object-contain opacity-80" alt="Preview"/>
-                           <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 hover:opacity-100 transition-opacity">
-                             <Upload size={16} className="text-white"/>
-                           </div>
-                         </>
-                       ) : (
-                         <div className="flex flex-col items-center"><Upload size={20}/> <span className="text-xs mt-1">Upload Sketch</span></div>
-                       )}
-                     </label>
+                   <div className="space-y-4">
+                      <div>
+                         <label className="text-xs text-neutral-500 uppercase block mb-1">Hero Image (Fallback)</label>
+                         <input type="file" accept="image/*" onChange={handleHeroImageUpload} className="block w-full text-xs text-neutral-500 file:mr-4 file:py-2 file:px-4 file:rounded-none file:border-0 file:text-xs file:font-semibold file:bg-white file:text-black hover:file:bg-neutral-200"/>
+                         {config.homeHeroImageUrl && <img src={config.homeHeroImageUrl} className="mt-2 h-32 object-cover border border-neutral-700" alt="Hero" />}
+                      </div>
+                      <div>
+                         <label className="text-xs text-neutral-500 uppercase block mb-1">Grid Background Images</label>
+                         <p className="text-[10px] text-neutral-500 mb-2">Upload multiple images for the animated grid. They will be auto-compressed.</p>
+                         <input type="file" accept="image/*" multiple onChange={handleAddGridImage} className="block w-full text-xs text-neutral-500 file:mr-4 file:py-2 file:px-4 file:rounded-none file:border-0 file:text-xs file:font-semibold file:bg-neutral-800 file:text-white hover:file:bg-neutral-700"/>
+                         
+                         <div className="grid grid-cols-6 gap-2 mt-4 max-h-40 overflow-y-auto p-2 bg-black border border-neutral-800">
+                            {config.homeGridImages?.map((img, idx) => (
+                              <div key={idx} className="relative group aspect-square">
+                                <img src={img} className="w-full h-full object-cover" alt="" />
+                                <button onClick={() => removeGridImage(idx)} className="absolute inset-0 bg-red-500/80 text-white opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                                  <X size={16} />
+                                </button>
+                              </div>
+                            ))}
+                         </div>
+                      </div>
                    </div>
-                   <div className="mt-2 flex items-center gap-2">
-                     <Link size={12} className="text-neutral-500" />
-                     <input placeholder="Or paste Image URL" name="homeManifestoImageUrl" value={config.homeManifestoImageUrl || ''} onChange={handleConfigUpdate} className="bg-transparent border-b border-neutral-700 text-xs w-full py-1 text-white outline-none focus:border-jakdang-accent" />
-                   </div>
-                 </div>
-                 
-                 <div>
-                   <label className="block text-xs text-neutral-500 mb-1">Definition Text</label>
-                   <textarea name="aboutDefinition" value={config.aboutDefinition} onChange={handleConfigUpdate} className="w-full bg-black border border-neutral-700 px-3 py-2 text-white outline-none h-24" />
-                 </div>
-                 {/* Description Text REMOVED */}
-               </div>
-
-               <div className="space-y-4">
-                 <h4 className="text-jakdang-accent font-bold text-sm border-b border-neutral-800 pb-2">Contact Page Text</h4>
-                 <div>
-                   <label className="block text-xs text-neutral-500 mb-1">Recruitment Text</label>
-                   <textarea name="contactRecruitText" value={config.contactRecruitText} onChange={handleConfigUpdate} className="w-full bg-black border border-neutral-700 px-3 py-2 text-white outline-none h-20" />
-                 </div>
-                 <div>
-                   <label className="block text-xs text-neutral-500 mb-1">Collaboration Text</label>
-                   <textarea name="contactCollabText" value={config.contactCollabText} onChange={handleConfigUpdate} className="w-full bg-black border border-neutral-700 px-3 py-2 text-white outline-none h-20" />
-                 </div>
-                 <div>
-                   <label className="block text-xs text-neutral-500 mb-1">Studio Address (Use Enter for line breaks)</label>
-                   <textarea name="contactAddress" value={config.contactAddress || ''} onChange={handleConfigUpdate} className="w-full bg-black border border-neutral-700 px-3 py-2 text-white outline-none h-20" placeholder="e.g. 123 Street..." />
-                 </div>
-                 <div>
-                   <label className="block text-xs text-neutral-500 mb-1">Instagram</label>
-                   <input name="contactInstagram" value={config.contactInstagram || ''} onChange={handleConfigUpdate} className="w-full bg-black border border-neutral-700 px-3 py-2 text-white outline-none" placeholder="e.g. instagram.com/..." />
-                 </div>
-                 <div>
-                   <label className="block text-xs text-neutral-500 mb-1">Email</label>
-                   <input name="contactEmail" value={config.contactEmail || ''} onChange={handleConfigUpdate} className="w-full bg-black border border-neutral-700 px-3 py-2 text-white outline-none" placeholder="e.g. hello@..." />
-                 </div>
-               </div>
+                </div>
              </div>
-          </div>
+
+             {/* Section 2: Manifesto & About */}
+             <div className="bg-neutral-900 border border-neutral-800 p-6">
+                <h3 className="text-lg font-bold text-white mb-6 border-b border-neutral-800 pb-2">Home: Manifesto</h3>
+                <div className="grid md:grid-cols-2 gap-8">
+                   <div className="space-y-4">
+                      <div>
+                        <label className="text-xs text-neutral-500 uppercase block mb-1">Manifesto Title</label>
+                        <input name="homeManifestoTitle" value={config.homeManifestoTitle || ''} onChange={handleConfigUpdate} placeholder="e.g. Conspire" className="w-full bg-black border border-neutral-700 px-3 py-2 text-white" />
+                      </div>
+                      <div>
+                        <label className="text-xs text-neutral-500 uppercase block mb-1">Definition Text</label>
+                        <textarea name="aboutDefinition" value={config.aboutDefinition} onChange={handleConfigUpdate} className="w-full bg-black border border-neutral-700 px-3 py-2 text-white h-32" />
+                      </div>
+                   </div>
+                   <div>
+                       <label className="text-xs text-neutral-500 uppercase block mb-1">Manifesto Image (Sketch)</label>
+                       <input type="file" accept="image/*" onChange={handleConfigImageUpload('homeManifestoImageUrl')} className="block w-full text-xs text-neutral-500 file:mr-4 file:py-2 file:px-4 file:rounded-none file:border-0 file:text-xs file:font-semibold file:bg-white file:text-black hover:file:bg-neutral-200"/>
+                       {config.homeManifestoImageUrl && <img src={config.homeManifestoImageUrl} className="mt-2 h-48 object-contain bg-black border border-neutral-700" alt="Manifesto" />}
+                   </div>
+                </div>
+             </div>
+
+             {/* Section 3: Contact Info */}
+             <div className="bg-neutral-900 border border-neutral-800 p-6">
+                <h3 className="text-lg font-bold text-white mb-6 border-b border-neutral-800 pb-2">Contact Details</h3>
+                <div className="grid md:grid-cols-2 gap-8">
+                   <div className="space-y-4">
+                      <div>
+                        <label className="text-xs text-neutral-500 uppercase block mb-1">Recruit Text</label>
+                        <textarea name="contactRecruitText" value={config.contactRecruitText} onChange={handleConfigUpdate} className="w-full bg-black border border-neutral-700 px-3 py-2 text-white h-20" />
+                      </div>
+                      <div>
+                        <label className="text-xs text-neutral-500 uppercase block mb-1">Collab Text</label>
+                        <textarea name="contactCollabText" value={config.contactCollabText} onChange={handleConfigUpdate} className="w-full bg-black border border-neutral-700 px-3 py-2 text-white h-20" />
+                      </div>
+                   </div>
+                   <div className="space-y-4">
+                      <div>
+                        <label className="text-xs text-neutral-500 uppercase block mb-1">Studio Address</label>
+                        <textarea name="contactAddress" value={config.contactAddress || ''} onChange={handleConfigUpdate} className="w-full bg-black border border-neutral-700 px-3 py-2 text-white h-20" placeholder="123 Street..."/>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-xs text-neutral-500 uppercase block mb-1">Email</label>
+                          <input name="contactEmail" value={config.contactEmail || ''} onChange={handleConfigUpdate} className="w-full bg-black border border-neutral-700 px-3 py-2 text-white" />
+                        </div>
+                        <div>
+                          <label className="text-xs text-neutral-500 uppercase block mb-1">Instagram</label>
+                          <input name="contactInstagram" value={config.contactInstagram || ''} onChange={handleConfigUpdate} className="w-full bg-black border border-neutral-700 px-3 py-2 text-white" />
+                        </div>
+                      </div>
+                   </div>
+                </div>
+             </div>
+           </div>
         )}
 
-        {/* === DATABASE TAB (Existing) === */}
+        {/* System Tab */}
         {activeTab === 'system' && (
-          <div className="lg:col-span-3 bg-neutral-900/50 p-8 border border-neutral-800">
-             <div className="flex items-center gap-3 mb-6 pb-6 border-b border-neutral-800">
-               <Database size={24} className="text-jakdang-accent" />
-               <h3 className="text-2xl font-bold text-white">Database Connection</h3>
-             </div>
+           <div className="lg:col-span-3">
+             <div className="max-w-xl mx-auto space-y-8">
+                <div className="bg-neutral-900 p-8 border border-neutral-800">
+                  <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                    <Database size={20} className="text-jakdang-accent" /> 
+                    Database Connection
+                  </h3>
+                  <div className="space-y-4 text-sm text-neutral-400">
+                     <p>
+                       To enable dynamic updates for all users, you must connect this site to a Firebase Firestore database.
+                     </p>
+                     <ol className="list-decimal list-inside space-y-2 ml-2">
+                       <li>Create a project at <a href="https://console.firebase.google.com" target="_blank" className="text-white underline">firebase.console.com</a></li>
+                       <li>Enable <strong>Firestore Database</strong> (Start in Test Mode).</li>
+                       <li>Copy the configuration object from Project Settings.</li>
+                       <li>Paste the config into <code>services/store.ts</code> in your source code.</li>
+                       <li>Redeploy the site.</li>
+                     </ol>
+                  </div>
+                  
+                  {DataService.isConfigured && (
+                    <div className="mt-8 pt-8 border-t border-neutral-800">
+                      <h4 className="text-white font-bold mb-2">Data Migration</h4>
+                      <p className="text-xs text-neutral-500 mb-4">
+                        Upload your current Local Storage data (projects, members, config) to the Cloud Database. 
+                        <br/><strong>Warning:</strong> This will overwrite existing cloud data with local data.
+                      </p>
+                      <button 
+                        onClick={handleMigrateToCloud}
+                        className="bg-white text-black px-4 py-2 text-xs font-bold uppercase tracking-widest hover:bg-neutral-200"
+                      >
+                        Push Local Data to Cloud
+                      </button>
+                    </div>
+                  )}
+                </div>
 
-             <div className="grid md:grid-cols-2 gap-12">
-               {/* Instructions */}
-               <div className="space-y-6 text-sm text-neutral-400">
-                 <p className="leading-relaxed">
-                   To make this website <strong>dynamic</strong> (so changes are visible to everyone), you need to connect it to <strong>Google Firebase</strong>.
-                 </p>
-                 
-                 <div className="bg-neutral-800/50 p-4 border-l-2 border-jakdang-accent space-y-2">
-                   <strong className="text-white block">Setup Instructions:</strong>
-                   <ol className="list-decimal pl-4 space-y-2">
-                     <li>Go to <a href="https://console.firebase.google.com" target="_blank" className="text-jakdang-accent underline">Firebase Console</a> and create a project.</li>
-                     <li>Register a Web App (<code>&lt;/&gt;</code> icon) to get your <code>firebaseConfig</code>.</li>
-                     <li>Create a <strong>Firestore Database</strong> in the "Build" menu.</li>
-                     <li>Set Security Rules to <strong>Test Mode</strong> (or allow read/write).</li>
-                     <li>Open your project file <code>services/store.ts</code>.</li>
-                     <li>Paste the config keys into the <code>firebaseConfig</code> object.</li>
-                   </ol>
-                 </div>
-               </div>
-
-               {/* Migration Actions */}
-               <div className="space-y-6">
-                 <div className="bg-black/50 p-6 border border-neutral-800">
-                    <h4 className="text-white font-bold mb-4 flex items-center gap-2">
-                      <CloudLightning size={18} className={DataService.isConfigured ? "text-green-500" : "text-neutral-600"} />
-                      Connection Status
-                    </h4>
-                    {DataService.isConfigured ? (
-                      <div className="text-green-400 text-sm mb-6">
-                        ✅ Connected to Firebase. All changes are synced globally.
-                      </div>
-                    ) : (
-                      <div className="text-red-400 text-sm mb-6">
-                        ❌ Not Configured. Running in Local Mode.
-                      </div>
-                    )}
-                    
-                    <h4 className="text-white font-bold mb-4">Data Migration</h4>
-                    <p className="text-xs text-neutral-500 mb-4">
-                       If you have data in Local Storage that you want to push to the Cloud Database, click below.
-                       (Only works if Firebase is connected).
-                    </p>
-                    <button 
-                      onClick={handleMigrateToCloud}
-                      disabled={!DataService.isConfigured}
-                      className="w-full bg-white text-black py-3 font-bold hover:bg-jakdang-accent hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed uppercase tracking-widest text-sm"
-                    >
-                      Migrate Local Data to Cloud
-                    </button>
-                 </div>
-               </div>
+                <div className="bg-neutral-900 p-8 border border-neutral-800">
+                   <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                    <FileJson size={20} className="text-neutral-500" /> 
+                    Raw Data Export
+                  </h3>
+                  <p className="text-sm text-neutral-400 mb-4">
+                    Download a JSON backup of your current content.
+                  </p>
+                  <button 
+                    onClick={() => {
+                       const backup = { projects, members, awards, config };
+                       const blob = new Blob([JSON.stringify(backup, null, 2)], {type : 'application/json'});
+                       const url = URL.createObjectURL(blob);
+                       const a = document.createElement('a');
+                       a.href = url;
+                       a.download = `jakdang_backup_${new Date().toISOString().split('T')[0]}.json`;
+                       a.click();
+                    }}
+                    className="border border-white text-white px-4 py-2 text-xs font-bold uppercase tracking-widest hover:bg-white hover:text-black transition-colors"
+                  >
+                    Download Backup JSON
+                  </button>
+                </div>
              </div>
-          </div>
+           </div>
         )}
 
       </div>
