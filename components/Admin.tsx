@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { Project, Member, ActivityLog, AwardItem, SiteConfig } from '../types';
-import { Trash2, Plus, Lock, LogOut, Layout, Users, Calendar, Archive, FileText, Settings, Upload, Image as ImageIcon, Link, Download, Save, AlertTriangle, Code, Globe, FileJson, RefreshCw, Database, CloudLightning, Grid, X, ArrowUp, ArrowDown } from 'lucide-react';
+import { Trash2, Plus, Lock, LogOut, Layout, Users, Calendar, Archive, FileText, Settings, Upload, Image as ImageIcon, Link, Download, Save, AlertTriangle, Code, Globe, FileJson, RefreshCw, Database, CloudLightning, Grid, X, ArrowUp, ArrowDown, ChevronRight, Edit2, RotateCcw } from 'lucide-react';
 import { DataService } from '../services/store';
 
 interface AdminProps {
@@ -33,9 +33,11 @@ export const Admin: React.FC<AdminProps> = ({
   const [isSaving, setIsSaving] = useState(false);
   
   // Forms State
+  const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
   const [newProject, setNewProject] = useState<Partial<Project>>({
     title: '', category: 'Academic', year: '2024', author: '', description: '', imageUrl: '', tags: []
   });
+  
   const [newMember, setNewMember] = useState<Partial<Member>>({
     name: '', role: 'YB', philosophy: '', imageUrl: '', order: 0
   });
@@ -49,7 +51,10 @@ export const Admin: React.FC<AdminProps> = ({
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     if (password === '5758') setIsAuthenticated(true);
-    else alert('Access Denied');
+    else {
+        setPassword('');
+        alert('Access Denied');
+    }
   };
 
   /* --- HANDLERS --- */
@@ -57,7 +62,6 @@ export const Admin: React.FC<AdminProps> = ({
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, setter: (url: string) => void) => {
     const file = e.target.files?.[0];
     if (file) {
-      // High Quality Limits
       if (file.size > 20 * 1024 * 1024) {
         alert("File is too large (>20MB). Please pick a smaller image.");
         return;
@@ -71,7 +75,6 @@ export const Admin: React.FC<AdminProps> = ({
           let width = img.width;
           let height = img.height;
           
-          // High Res Width
           const MAX_WIDTH = 2560;
           if (width > MAX_WIDTH) {
             height = (MAX_WIDTH / width) * height;
@@ -83,7 +86,6 @@ export const Admin: React.FC<AdminProps> = ({
           const ctx = canvas.getContext('2d');
           ctx?.drawImage(img, 0, 0, width, height);
 
-          // High Quality Jpeg
           const dataUrl = canvas.toDataURL('image/jpeg', 0.90);
           setter(dataUrl);
         };
@@ -118,6 +120,11 @@ export const Admin: React.FC<AdminProps> = ({
       const updated = data.filter(item => item.id !== id);
       setter(updated);
       safeSave(persister, updated);
+      
+      // If we deleted the item currently being edited, reset edit mode
+      if (activeTab === 'projects' && editingProjectId === id) {
+        resetProjectForm();
+      }
     }
   };
 
@@ -126,14 +133,42 @@ export const Admin: React.FC<AdminProps> = ({
   const deleteActivity = createDeleteHandler(activities, setActivities, DataService.saveActivities);
   const deleteAward = createDeleteHandler(awards, setAwards, DataService.saveAwards);
 
-  const handleAddProject = (e: React.FormEvent) => {
-    e.preventDefault();
-    const item: Project = { ...newProject as Project, id: DataService.generateId() };
-    const updated = [item, ...projects];
-    setProjects(updated);
-    safeSave(DataService.saveProjects, updated);
+  /* --- PROJECT SPECIFIC HANDLERS --- */
+  
+  const resetProjectForm = () => {
     setNewProject({ title: '', category: 'Academic', year: '2024', author: '', description: '', imageUrl: '', tags: [] });
+    setEditingProjectId(null);
   };
+
+  const handleEditProject = (project: Project) => {
+    setNewProject({ ...project });
+    setEditingProjectId(project.id);
+    // Scroll to top of form
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleSaveProject = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    let updatedProjects: Project[];
+    
+    if (editingProjectId) {
+      // Update existing
+      updatedProjects = projects.map(p => 
+        p.id === editingProjectId ? { ...newProject, id: editingProjectId } as Project : p
+      );
+    } else {
+      // Create new
+      const item: Project = { ...newProject as Project, id: DataService.generateId() };
+      updatedProjects = [item, ...projects];
+    }
+
+    setProjects(updatedProjects);
+    safeSave(DataService.saveProjects, updatedProjects);
+    resetProjectForm();
+  };
+
+  /* --- OTHER HANDLERS --- */
 
   const handleAddMember = (e: React.FormEvent) => {
     e.preventDefault();
@@ -146,20 +181,14 @@ export const Admin: React.FC<AdminProps> = ({
   };
 
   const moveMember = (index: number, direction: -1 | 1) => {
-    // Sort current members by order first to ensure visual order matches array index
     const sortedMembers = [...members].sort((a, b) => (a.order || 0) - (b.order || 0));
-    
-    // Check bounds
     if (index + direction < 0 || index + direction >= sortedMembers.length) return;
     
-    // Swap items
     const temp = sortedMembers[index];
     sortedMembers[index] = sortedMembers[index + direction];
     sortedMembers[index + direction] = temp;
     
-    // Re-assign order based on new index
     const reorderedMembers = sortedMembers.map((m, i) => ({ ...m, order: i }));
-    
     setMembers(reorderedMembers);
     safeSave(DataService.saveMembers, reorderedMembers);
   };
@@ -196,7 +225,6 @@ export const Admin: React.FC<AdminProps> = ({
     });
   };
 
-  // Generic Image Uploader for Config properties
   const handleConfigImageUpload = (propertyName: keyof SiteConfig) => (e: React.ChangeEvent<HTMLInputElement>) => {
     handleImageUpload(e, (url) => {
       const newConfig = { ...config, [propertyName]: url };
@@ -205,7 +233,6 @@ export const Admin: React.FC<AdminProps> = ({
     });
   };
 
-  // Home Grid Image Handling
   const handleAddGridImage = (e: React.ChangeEvent<HTMLInputElement>) => {
     handleImageUpload(e, (url) => {
       const currentImages = config.homeGridImages || [];
@@ -223,8 +250,6 @@ export const Admin: React.FC<AdminProps> = ({
     setConfig(newConfig);
     safeSave(DataService.saveSiteConfig, newConfig);
   };
-
-  // --- SYSTEM FUNCTIONS ---
 
   const handleMigrateToCloud = async () => {
     if (!DataService.isConfigured) {
@@ -247,36 +272,43 @@ export const Admin: React.FC<AdminProps> = ({
 
   if (!isAuthenticated) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] bg-black">
-        <div className="w-full max-w-md p-8 bg-neutral-900 border border-neutral-800 shadow-xl">
-          <div className="text-center mb-8">
-            <Lock className="mx-auto text-jakdang-accent mb-4" size={48} />
-            <h2 className="text-xl font-bold text-white">Admin Access</h2>
-          </div>
-          <form onSubmit={handleLogin} className="space-y-4">
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-black border border-neutral-700 text-white px-4 py-3 focus:border-jakdang-accent outline-none text-center tracking-widest"
-              placeholder="PIN CODE"
-              autoFocus
-            />
-            <button type="submit" className="w-full bg-white text-black font-bold py-3 hover:bg-jakdang-accent transition-colors">
-              ENTER
-            </button>
+      <div className="flex flex-col items-center justify-center min-h-screen bg-black text-white selection:bg-white selection:text-black">
+        <div className="w-full max-w-sm px-6">
+          <form onSubmit={handleLogin} className="flex flex-col gap-12">
+            <div className="text-center space-y-2">
+               <h2 className="text-xs font-mono uppercase tracking-[0.3em] text-neutral-500">System Access</h2>
+            </div>
+            
+            <div className="relative group">
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full bg-transparent border-b border-neutral-800 py-4 text-center text-xl tracking-[0.5em] text-white outline-none focus:border-white transition-colors placeholder:text-neutral-800 placeholder:tracking-normal placeholder:text-sm font-mono"
+                  placeholder="PASSCODE"
+                  autoFocus
+                />
+            </div>
+
+            <div className="flex justify-center">
+                <button 
+                  type="submit" 
+                  className="text-neutral-600 hover:text-white transition-colors duration-300 flex items-center gap-2 group"
+                >
+                  <span className="text-[10px] font-bold uppercase tracking-widest">Enter</span>
+                  <ChevronRight size={14} className="group-hover:translate-x-1 transition-transform" />
+                </button>
+            </div>
           </form>
         </div>
       </div>
     );
   }
 
-  // Pre-sort members for display
   const displayMembers = [...members].sort((a, b) => (a.order || 0) - (b.order || 0));
 
   return (
     <div className="space-y-8 relative bg-black min-h-screen p-4 md:p-0">
-       {/* Global Saving Indicator */}
       {isSaving && (
         <div className="fixed top-4 right-4 z-[100] bg-jakdang-accent text-white px-4 py-2 rounded shadow-lg flex items-center gap-2 animate-pulse">
            <RefreshCw size={16} className="animate-spin" /> Saving to Server...
@@ -300,7 +332,6 @@ export const Admin: React.FC<AdminProps> = ({
         </button>
       </div>
 
-      {/* Tabs */}
       <div className="flex flex-wrap gap-2 border-b border-neutral-800">
         {[
           { id: 'config', icon: Settings, label: 'Site Content' },
@@ -322,7 +353,6 @@ export const Admin: React.FC<AdminProps> = ({
         ))}
       </div>
 
-      {/* Deployment/DB Banner */}
       {!DataService.isConfigured && activeTab !== 'system' && (
         <div className="bg-yellow-900/10 border-l-4 border-yellow-700 p-4 flex justify-between items-center shadow-sm">
           <div className="text-sm text-yellow-500">
@@ -340,9 +370,22 @@ export const Admin: React.FC<AdminProps> = ({
         {/* Projects Tab */}
         {activeTab === 'projects' && (
           <>
-            <div className="lg:col-span-1 bg-neutral-900 p-6 border border-neutral-800 h-fit shadow-sm">
-              <h3 className="text-sm font-bold text-white mb-4 uppercase tracking-wider flex items-center gap-2"><Plus size={16}/> New Project</h3>
-              <form onSubmit={handleAddProject} className="space-y-4">
+            <div className="lg:col-span-1 bg-neutral-900 p-6 border border-neutral-800 h-fit shadow-sm sticky top-4">
+              <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                    {editingProjectId ? <><Edit2 size={16} className="text-jakdang-accent"/> Edit Project</> : <><Plus size={16}/> New Project</>}
+                  </h3>
+                  {editingProjectId && (
+                    <button 
+                      onClick={resetProjectForm} 
+                      className="text-xs text-neutral-500 hover:text-white flex items-center gap-1 border border-neutral-800 px-2 py-1"
+                    >
+                      <RotateCcw size={12}/> Cancel
+                    </button>
+                  )}
+              </div>
+
+              <form onSubmit={handleSaveProject} className="space-y-4">
                 <input placeholder="Title" value={newProject.title} onChange={e => setNewProject({...newProject, title: e.target.value})} className="w-full bg-black border border-neutral-700 px-3 py-2 text-white outline-none focus:border-jakdang-accent" required />
                 <div className="grid grid-cols-2 gap-2">
                   <select value={newProject.category} onChange={e => setNewProject({...newProject, category: e.target.value as any})} className="bg-black border border-neutral-700 text-white px-3 py-2 outline-none">
@@ -369,14 +412,38 @@ export const Admin: React.FC<AdminProps> = ({
                      <input placeholder="Or paste Image URL" value={newProject.imageUrl} onChange={e => setNewProject({...newProject, imageUrl: e.target.value})} className="bg-transparent border-b border-neutral-700 text-xs w-full py-1 text-white outline-none focus:border-jakdang-accent" />
                    </div>
                 </div>
-                <button type="submit" className="w-full bg-white text-black font-bold py-2 hover:bg-jakdang-accent hover:text-white transition-colors shadow-lg">ADD TO DATABASE</button>
+                <button type="submit" className={`w-full font-bold py-2 transition-colors shadow-lg ${editingProjectId ? 'bg-jakdang-accent text-white' : 'bg-white text-black hover:bg-jakdang-accent hover:text-white'}`}>
+                  {editingProjectId ? 'UPDATE PROJECT' : 'ADD TO DATABASE'}
+                </button>
               </form>
             </div>
             <div className="lg:col-span-2 space-y-2">
+              <h4 className="text-xs font-mono text-neutral-500 uppercase tracking-widest mb-4">Existing Projects ({projects.length})</h4>
               {projects.map(p => (
-                <div key={p.id} className="flex justify-between items-center p-4 border border-neutral-800 bg-neutral-900 hover:shadow-md transition-shadow">
-                  <div><h4 className="font-bold text-white">{p.title}</h4><p className="text-xs text-neutral-500">{p.year} | {p.category}</p></div>
-                  <button onClick={() => deleteProject(p.id)} className="text-neutral-600 hover:text-red-500"><Trash2 size={18}/></button>
+                <div key={p.id} className={`flex justify-between items-center p-4 border transition-all ${editingProjectId === p.id ? 'border-jakdang-accent bg-neutral-900/80' : 'border-neutral-800 bg-neutral-900 hover:shadow-md'}`}>
+                  <div className="flex items-center gap-4">
+                    {p.imageUrl && <img src={p.imageUrl} alt="" className="w-12 h-12 object-cover bg-neutral-800"/>}
+                    <div>
+                        <h4 className={`font-bold ${editingProjectId === p.id ? 'text-jakdang-accent' : 'text-white'}`}>{p.title}</h4>
+                        <p className="text-xs text-neutral-500">{p.year} | {p.category}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button 
+                      onClick={() => handleEditProject(p)} 
+                      className="text-neutral-600 hover:text-white p-2 border border-transparent hover:border-neutral-800 transition-colors"
+                      title="Edit"
+                    >
+                        <Edit2 size={18}/>
+                    </button>
+                    <button 
+                      onClick={() => deleteProject(p.id)} 
+                      className="text-neutral-600 hover:text-red-500 p-2 border border-transparent hover:border-neutral-800 transition-colors"
+                      title="Delete"
+                    >
+                        <Trash2 size={18}/>
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -417,7 +484,6 @@ export const Admin: React.FC<AdminProps> = ({
               {displayMembers.map((m, index) => (
                 <div key={m.id} className="flex justify-between items-center p-4 border border-neutral-800 bg-neutral-900 hover:shadow-md transition-shadow">
                   <div className="flex items-center gap-4">
-                     {/* Reorder Buttons */}
                      <div className="flex flex-col gap-1 mr-2">
                        <button 
                          onClick={() => moveMember(index, -1)} 
