@@ -32,32 +32,31 @@ export const Layout: React.FC<LayoutProps> = ({ children, currentPage, onNavigat
     <div className="min-h-screen flex flex-col font-sans text-white bg-black selection:bg-white selection:text-black">
       
       {/* Header */}
-      {/* Dynamic positioning: 'fixed' when menu is open to keep close button visible/accessible, 'absolute' otherwise */}
+      {/* Removed mix-blend-difference from main container to keep Logo Red color true */}
       <header 
-        className={`${isMenuOpen ? 'fixed' : 'absolute'} top-0 left-0 w-full z-50 px-6 md:px-12 py-8 flex justify-between items-start mix-blend-difference text-white pointer-events-none transition-all duration-300`}
+        className={`${isMenuOpen ? 'fixed' : 'absolute'} top-0 left-0 w-full z-50 px-6 md:px-12 py-8 flex justify-between items-start pointer-events-none transition-all duration-300`}
       >
         {/* Logo - Pointer events re-enabled */}
         <div 
-          className="cursor-pointer pointer-events-auto hover:opacity-70 transition-opacity flex flex-col" 
+          className="cursor-pointer pointer-events-auto hover:opacity-70 transition-opacity flex flex-col drop-shadow-lg" 
           onClick={() => handleNav('home')}
         >
-          {/* Main Title - Subtle Red */}
-          <div className="font-bold text-3xl tracking-tighter uppercase leading-none text-red-500">
+          {/* Main Title - Point Color (Red) */}
+          <div className="font-bold text-3xl tracking-tighter uppercase leading-none text-jakdang-accent">
             Jakdang
           </div>
-          {/* Subtitle - Subtle Red */}
-          <div className="text-[0.6rem] font-bold tracking-[0.2em] text-red-500 uppercase leading-none mt-2">
+          {/* Subtitle - Point Color (Red) */}
+          <div className="text-[0.6rem] font-bold tracking-[0.2em] text-jakdang-accent uppercase leading-none mt-2">
             Architectural Student Club
           </div>
         </div>
 
-        {/* Menu Toggle - Pointer events re-enabled */}
+        {/* Menu Toggle - Mix blend difference applied here for visibility on all backgrounds */}
         <button 
           onClick={() => setIsMenuOpen(!isMenuOpen)}
-          className="flex items-center justify-center group pointer-events-auto pt-1"
+          className="flex items-center justify-center group pointer-events-auto pt-1 mix-blend-difference"
           aria-label={isMenuOpen ? 'Close Menu' : 'Open Menu'}
         >
-          {/* Text label removed as requested */}
           <div className={`w-12 h-12 flex items-center justify-center border rounded-full transition-all duration-300 ${isMenuOpen ? 'bg-white text-black border-white' : 'border-white text-white hover:bg-white hover:text-black'}`}>
             {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
           </div>
